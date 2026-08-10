@@ -16,6 +16,11 @@
 * [x] `POST /api/v1/knowledge/query` - Implemented with Top-K thresholding & Tenacity retries
 * [x] Pytest suite for Knowledge API (`tests/api/v1/test_knowledge.py`)
 * [x] **Project Audit Completed:** 2026-08-10T16:15:47+05:30
+* [x] JWT Authentication & RBAC (`app/api/v1/endpoints/auth.py`, `app/api/v1/deps.py`)
+* [x] Pytest suite for Auth (`tests/api/v1/test_auth.py`)
+* [x] Predictive Resource Allocation (`app/api/v1/endpoints/resources.py`)
+* [x] Pytest suite for Resources (`tests/api/v1/test_resources.py`)
+* [x] Production Dockerization (`Dockerfile`, `docker-compose.yml`)
 
 ## Database & RAG Status
 * MongoDB: Async Motor client initialized (`app/services/mongo_service.py`)
@@ -39,3 +44,6 @@
 * 2026-08-10: Implemented production-grade Knowledge API (Upload & Query). Added streaming size limits, SHA-256 deduplication, Top-K thresholding, and resilient LLM fallbacks.
 * 2026-08-10: Created automated Pytest suite for Knowledge API covering streaming size limits, SHA-256 deduplication, content-type guards, RAG retrieval, and 503 DB failure handling. All tests passing.
 * 2026-08-10T16:15:47+05:30: Executed comprehensive end-to-end repository audit. Verified 100% test pass rate (11/11). Codebase confirmed clear of placeholder TODOs and mock logic. Documented remaining backend scope (Auth, Security, Deployment).
+* 2026-08-10T22:45:00+05:30: Implemented JWT Authentication & RBAC middleware. Created login, register, and /me endpoints. Bypassed passlib limitations via raw bcrypt PwdContext wrapper. Full auth test suite passed successfully.
+* 2026-08-10T22:48:58+05:30: Implemented Predictive Resource Allocation Endpoint (/api/v1/resources/resolve-conflict). Secured with admin RBAC. Implemented MongoDB teacher lookups with conflicting substitution exclusion logic, autonomous RAG policy check simulation, and Global Server-Sent Event (SSE) alert broadcasting. Validated via complete test suite (18/18 tests passing).
+* 2026-08-10T22:54:44+05:30: Scaffolded production Docker environment. Created lean python:3.11-slim Dockerfile optimizing layer caching, implemented strict .dockerignore to prevent secret leakage, and built docker-compose.yml orchestrating the API container exposing port 8000 via env-injected variables.
