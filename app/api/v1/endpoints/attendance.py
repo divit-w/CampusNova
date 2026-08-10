@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException, Request
 import base64
 from datetime import datetime, timezone
 import json
@@ -8,6 +8,7 @@ from app.api.v1.deps import require_roles
 from app.core.config import settings
 from app.core.utils import haversine_distance
 from app.services.mongo_service import mongo_db
+from app.core.limiter import limiter
 
 router = APIRouter()
 
@@ -104,7 +105,9 @@ async def faculty_clock_in(
     return {"status": "success", "message": "Clock-in successful"}
 
 @router.post("/process-sheet")
+@limiter.limit("5/minute")
 async def process_sheet(
+    request: Request,
     file: UploadFile = File(...),
     date: str = Form(None),
     current_user: dict = Depends(require_roles(["teacher", "admin"]))
