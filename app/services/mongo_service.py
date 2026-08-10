@@ -14,5 +14,6 @@ class MongoManager:
         self.students_collection = self.db.get_collection("students")
         self.rooms_collection = self.db.get_collection("rooms")
         self.subjects_collection = self.db.get_collection("subjects")
+        self.classes_collection = self.db.get_collection("classes")
 
 mongo_db = MongoManager()
