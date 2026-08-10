@@ -1,0 +1,38 @@
+{
+  "DocumentSchema": {
+    "student_name": "string",
+    "admission_number": "string",
+    "grade_level": "integer",
+    "confidence_scores": {
+      "student_name": "float",
+      "admission_number": "float"
+    },
+    "requires_review": "boolean"
+  },
+  "TimetableConstraintPayload": {
+    "days_per_week": "integer (1-7)",
+    "periods_per_day": "integer (1-24)",
+    "teachers": [{"id": "string", "name": "string", "max_hours": "integer (strictly > 0)"}],
+    "rooms": [{"id": "string", "capacity": "integer (strictly > 0)"}],
+    "subjects": [{"id": "string", "name": "string", "required_weekly_hours": "integer (strictly > 0)"}],
+    "hard_constraints": ["Enum('no_double_booking', 'max_hours_respected')"]
+  },
+  "KnowledgeDocument": {
+    "id": "string",
+    "title": "string",
+    "upload_date": "datetime",
+    "total_chunks": "integer"
+  },
+  "RAGResponse": {
+    "query": "string",
+    "answer": "string",
+    "citations": [
+      {
+        "document_id": "string",
+        "chunk_index": "integer",
+        "confidence_score": "float",
+        "extracted_text": "string"
+      }
+    ]
+  }
+}
