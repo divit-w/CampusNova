@@ -1,4 +1,5 @@
 import json
+import secrets
 from typing import Optional, List, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -6,7 +7,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     MONGO_URI: str = "mongodb://localhost:27017"
     MONGO_DB_NAME: str = "campusnova"
-    SECRET_KEY: str = "super-secret-key"
+    # 256-bit cryptographically random fallback — silences PyJWT InsecureKeyLengthWarning.
+    # In production this MUST be overridden by a fixed SECRET_KEY in .env so tokens
+    # remain valid across server restarts.
+    SECRET_KEY: str = secrets.token_hex(32)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     GEMINI_API_KEY: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None

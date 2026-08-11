@@ -13,13 +13,49 @@ from app.core.limiter import limiter
 router = APIRouter()
 
 async def check_liveness(base64_image: str) -> bool:
-    # Full implementation interacting with OpenRouter/Vision API
-    # Simulated structure that will be mocked in tests
-    try:
-        async with httpx.AsyncClient() as client:
-            pass
+    """
+    Calls OpenRouter Vision API to verify that the uploaded selfie shows a real human face.
+    Fails closed: any network error, API error, or ambiguous response returns False.
+    Falls back to True only in local dev when OPENROUTER_API_KEY is absent.
+    """
+    if not settings.OPENROUTER_API_KEY:
+        # Local development fallback — no API key configured
         return True
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "meta-llama/llama-3.2-11b-vision-instruct:free",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": "Does this image clearly show a human face? Answer only YES or NO.",
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{base64_image}"
+                                    },
+                                },
+                            ],
+                        }
+                    ],
+                },
+            )
+            response.raise_for_status()
+            answer = response.json()["choices"][0]["message"]["content"].strip().upper()
+            return answer.startswith("YES")
     except Exception:
+        # Fail closed — any upstream error must not grant access
         return False
 
 async def extract_attendance_from_image(base64_image: str) -> list:
