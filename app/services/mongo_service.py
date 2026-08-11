@@ -3,7 +3,12 @@ from app.core.config import settings
 
 class MongoManager:
     def __init__(self):
-        self.client = AsyncIOMotorClient(settings.MONGO_URI)
+        self.client = AsyncIOMotorClient(
+            settings.MONGO_URI,
+            maxPoolSize=200,           # Sustain up to 200 concurrent MongoDB operations before queuing
+            minPoolSize=10,            # Pre-warm 10 connections — eliminates cold-connect latency
+            serverSelectionTimeoutMS=3000,  # Fail fast (3s) if MongoDB is unreachable
+        )
         self.db = self.client[settings.MONGO_DB_NAME]
         self.knowledge_collection = self.db.get_collection("knowledge_documents")
         self.users_collection = self.db.get_collection("users")
@@ -15,5 +20,6 @@ class MongoManager:
         self.rooms_collection = self.db.get_collection("rooms")
         self.subjects_collection = self.db.get_collection("subjects")
         self.classes_collection = self.db.get_collection("classes")
+        self.transport_routes_collection = self.db.get_collection("transport_routes")
 
 mongo_db = MongoManager()
