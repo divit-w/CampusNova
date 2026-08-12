@@ -36,8 +36,14 @@ async def student_my_schedule(
     if not student_doc:
         raise HTTPException(status_code=404, detail="Student profile not found")
 
-    grade = student_doc["grade"]
-    section = student_doc["section"]
+    grade = student_doc.get("grade")
+    section = student_doc.get("section")
+
+    if grade is None or section is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Student profile is incomplete: missing grade or section assignment.",
+        )
 
     cursor = mongo_db.classes_collection.find(
         {"grade": grade, "section": section}, {"_id": 0}
