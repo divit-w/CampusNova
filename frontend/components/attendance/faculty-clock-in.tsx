@@ -178,11 +178,11 @@ export function FacultyClockIn() {
         )}
       </AnimatePresence>
 
-      {error && !outsideGeofence && !livenessFailed && (
+      {error && !outsideGeofence && !livenessFailed ? (
         <div className="mt-2">
           <ErrorState error={error} onRetry={submit} />
         </div>
-      )}
+      ) : null}
       {outsideGeofence && (
         <p className="mt-3 text-sm text-destructive">
           You&apos;re outside the campus geofence. Move closer to campus and try again.

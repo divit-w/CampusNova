@@ -179,11 +179,11 @@ export function VisionUploadZone() {
         </div>
       )}
 
-      {error && (
+      {error ? (
         <div className="mt-2">
           <ErrorState error={error} onRetry={file ? submit : undefined} />
         </div>
-      )}
+      ) : null}
     </Card>
   )
 }

@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import { PanelLeftClose, PanelLeftOpen, X } from "lucide-react"
 import { BrandLogo } from "@/components/brand-logo"
-import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { navForRole, type NavItem } from "@/lib/nav"
 import { spring } from "@/lib/motion"
@@ -59,11 +58,6 @@ function NavLinks({
             {!collapsed && (
               <span className="relative z-10 flex-1 truncate">{item.label}</span>
             )}
-            {!collapsed && item.phase2 && (
-              <Badge variant="neutral" className="relative z-10 px-1.5 py-0 text-[10px]">
-                Soon
-              </Badge>
-            )}
           </Link>
         )
 
@@ -71,10 +65,7 @@ function NavLinks({
           return (
             <Tooltip key={item.href} delayDuration={0}>
               <TooltipTrigger asChild>{link}</TooltipTrigger>
-              <TooltipContent side="right">
-                {item.label}
-                {item.phase2 ? " · Phase 2" : ""}
-              </TooltipContent>
+              <TooltipContent side="right">{item.label}</TooltipContent>
             </Tooltip>
           )
         }
