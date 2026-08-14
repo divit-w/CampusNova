@@ -84,13 +84,20 @@ export function OperationsSummaryCards({ compact = false }: { compact?: boolean 
     >
       {tiles.map((tile) => (
         <motion.div key={tile.key} variants={riseItem}>
-          <Card className={cn("p-5 transition-shadow duration-300 hover:shadow-soft-lg", compact && "p-4")}>
+          <Card
+            className={cn(
+              "p-5 transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-glow-primary",
+              compact && "p-4",
+            )}
+          >
             <div className="flex items-center justify-between">
               <span className={cn("grid h-9 w-9 place-items-center rounded-xl", tile.tint, tile.tone)}>
                 <tile.icon className="h-[18px] w-[18px]" />
               </span>
             </div>
-            <p className="mt-4 truncate text-2xl font-semibold tracking-tight tabular-nums">{tile.value}</p>
+            <p className="text-gradient-brand mt-4 truncate text-2xl font-semibold tracking-tight tabular-nums">
+              {tile.value}
+            </p>
             <p className="mt-1 truncate text-sm text-muted-foreground">{tile.label}</p>
           </Card>
         </motion.div>

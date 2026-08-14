@@ -86,6 +86,10 @@ const config: Config = {
         soft: "0 1px 2px 0 rgb(15 23 42 / 0.04), 0 4px 16px -4px rgb(15 23 42 / 0.08)",
         "soft-lg": "0 2px 4px 0 rgb(15 23 42 / 0.04), 0 12px 32px -8px rgb(15 23 42 / 0.12)",
         pill: "0 2px 12px -2px rgb(15 23 42 / 0.16)",
+        /* colored brand glows — used sparingly on active/hovered focal elements */
+        "glow-primary": "0 10px 32px -8px rgb(29 78 216 / 0.35), 0 2px 8px -2px rgb(29 78 216 / 0.18)",
+        "glow-cyan": "0 10px 32px -8px rgb(6 182 212 / 0.35), 0 2px 8px -2px rgb(6 182 212 / 0.18)",
+        "glow-success": "0 10px 32px -8px rgb(16 185 129 / 0.3), 0 2px 8px -2px rgb(16 185 129 / 0.16)",
       },
       keyframes: {
         "fade-in": {

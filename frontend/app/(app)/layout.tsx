@@ -36,7 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading || !user) {
     return (
-      <div className="grid min-h-screen place-items-center bg-surface">
+      <div className="grid min-h-screen place-items-center">
         <div className="flex flex-col items-center gap-4">
           <BrandLogo showWordmark={false} className="animate-pulse-live" />
           <p className="text-sm text-muted-foreground">Loading your workspace…</p>
@@ -47,7 +47,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <AlertProvider token={getToken()}>
-      <div className="flex min-h-screen bg-surface">
+      <div className="flex min-h-screen">
         <AppSidebar
           role={user.role}
           collapsed={collapsed}
