@@ -3,9 +3,12 @@ import type {
   AttendanceSummaryResponse,
   ClassResponse,
   ClockInResponse,
+  DocumentExtractResponse,
   GenerateJobAck,
+  KnowledgeUploadResponse,
   ProcessSheetResponse,
   PromptResponse,
+  RAGResponse,
   ResolveConflictResponse,
   ResourceConflictRequest,
   StudentRecord,
@@ -185,5 +188,22 @@ export const api = {
   /* Transport (admin) */
   async optimizeRoutes(payload: TransportOptimizationRequest): Promise<TransportOptimizationResponse> {
     return request<TransportOptimizationResponse>("/transport/optimize-routes", { method: "POST", body: payload })
+  },
+
+  /* Knowledge base / RAG (admin) */
+  async queryKnowledge(query: string, signal?: AbortSignal): Promise<RAGResponse> {
+    return request<RAGResponse>("/knowledge/query", { method: "POST", body: { query }, signal })
+  },
+  async uploadKnowledgeDocument(file: File): Promise<KnowledgeUploadResponse> {
+    const fd = new FormData()
+    fd.append("file", file)
+    return request<KnowledgeUploadResponse>("/knowledge/upload", { method: "POST", formData: fd })
+  },
+
+  /* Document intake / OCR (admin) */
+  async extractDocument(file: File): Promise<DocumentExtractResponse> {
+    const fd = new FormData()
+    fd.append("file", file)
+    return request<DocumentExtractResponse>("/documents/extract", { method: "POST", formData: fd })
   },
 }
