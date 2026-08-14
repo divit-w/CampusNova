@@ -58,7 +58,7 @@ export default function DashboardPage() {
           {ACTIONS.map((a) => (
             <motion.div key={a.href} variants={riseItem} className={a.href === "/assistant" ? "sm:col-span-2" : ""}>
               <Link href={a.href} className="group block h-full">
-                <Card className="flex h-full flex-col justify-between p-5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:shadow-soft-lg">
+                <Card className="flex h-full flex-col justify-between p-5 transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-soft-lg">
                   <div className="flex items-start justify-between">
                     <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
                       <a.icon className="h-5 w-5" />

@@ -103,6 +103,14 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
 /* ── typed endpoints ────────────────────────────────────────────────── */
 
 export const api = {
+  /** Generic helpers used by the workflow pages (SWR fetchers, mutations). */
+  get<T>(path: string, signal?: AbortSignal): Promise<T> {
+    return request<T>(path, { signal })
+  },
+  post<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+    return request<T>(path, { method: "POST", body, signal })
+  },
+
   /** OAuth2 password flow — form-encoded username/password. */
   async login(email: string, password: string): Promise<Token> {
     return request<Token>("/auth/login", {
