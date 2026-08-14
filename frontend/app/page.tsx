@@ -8,7 +8,8 @@ import { BrandLogo } from "@/components/brand-logo"
 
 /**
  * Entry gate. Sends authenticated users to their role landing and everyone
- * else to /login. Admins land on the dashboard; non-admins on /my-schedule.
+ * else to /login. Admins land on the dashboard; teachers and students land
+ * on their dedicated role portal (/portals/teacher, /portals/student).
  */
 export default function IndexPage() {
   const { user, loading } = useAuth()
