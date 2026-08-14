@@ -51,6 +51,13 @@
 
     --radius: 0.875rem;
 
+    /* chart series — reuse the same semantic hues as the rest of the UI */
+    --chart-1: 211 100% 48%; /* primary blue */
+    --chart-2: 190 95% 39%; /* live cyan */
+    --chart-3: 152 58% 39%; /* success green */
+    --chart-4: 35 92% 48%; /* warning amber */
+    --chart-5: 0 72% 51%; /* destructive red */
+
     /* shared spring / easing tokens (kept in sync with lib/motion.ts) */
     --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
     --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);

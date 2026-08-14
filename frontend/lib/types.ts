@@ -277,3 +277,22 @@ export interface TransportRoutesSummaryResponse {
   total_students_routed: number
   generated_at: string | null
 }
+
+/* ── Dashboard — app/schemas/dashboard.py ───────────────────────────── */
+
+export interface DailyAttendancePoint {
+  date: string
+  present: number
+  absent: number
+  total: number
+}
+
+/** GET /admin/dashboard-summary — app/schemas/dashboard.py :: DashboardSummaryResponse */
+export interface DashboardSummaryResponse {
+  active_students: number
+  active_teachers: number
+  timetable_status: JobStatus | null
+  timetable_generated_at: string | null
+  substitutions_today: number
+  weekly_attendance: DailyAttendancePoint[]
+}

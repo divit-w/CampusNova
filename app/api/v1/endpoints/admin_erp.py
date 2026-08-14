@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from app.api.v1.deps import require_roles
@@ -10,6 +10,7 @@ from app.schemas.core_erp import (
     TeacherCreate, TeacherResponse,
     ClassCreate, ClassResponse,
 )
+from app.schemas.dashboard import DashboardSummaryResponse
 from app.services.mongo_service import mongo_db
 
 router = APIRouter()
@@ -140,3 +141,68 @@ async def attendance_summary(
         "total_students": len(results),
         "records": results,
     }
+
+
+# ──────────────────────────── Dashboard Summary ───────────────────
+
+@router.get("/dashboard-summary", response_model=DashboardSummaryResponse)
+async def dashboard_summary(
+    current_user: dict = Depends(require_roles(["admin"])),
+):
+    """
+    Single aggregate call backing the admin dashboard KPI row, weekly trend
+    chart, and quick-action live statuses. Every value is read straight from
+    existing collections — no derived/mocked fields.
+    """
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    active_students = await mongo_db.students_collection.count_documents({})
+    active_teachers = await mongo_db.teachers_collection.count_documents({})
+
+    latest_job = await mongo_db.timetable_jobs_collection.find_one(
+        {}, {"_id": 0, "status": 1, "created_at": 1, "completed_at": 1}, sort=[("created_at", -1)]
+    )
+    timetable_status = latest_job.get("status") if latest_job else None
+    timetable_generated_at = (
+        (latest_job.get("completed_at") or latest_job.get("created_at")) if latest_job else None
+    )
+
+    substitutions_today = await mongo_db.substitutions_collection.count_documents({"date": today})
+
+    # Last 7 calendar days, oldest → newest, filling in zero-days that have no records.
+    window_start = (datetime.now(timezone.utc) - timedelta(days=6)).strftime("%Y-%m-%d")
+    pipeline = [
+        {"$match": {"date": {"$gte": window_start, "$lte": today}}},
+        {
+            "$group": {
+                "_id": "$date",
+                "total": {"$sum": 1},
+                "present": {"$sum": {"$cond": [{"$eq": ["$status", "present"]}, 1, 0]}},
+                "absent": {"$sum": {"$cond": [{"$eq": ["$status", "absent"]}, 1, 0]}},
+            }
+        },
+    ]
+    rows = await mongo_db.student_attendance_collection.aggregate(pipeline).to_list(length=7)
+    by_date = {r["_id"]: r for r in rows}
+
+    weekly_attendance = []
+    for i in range(6, -1, -1):
+        day = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
+        row = by_date.get(day)
+        weekly_attendance.append(
+            {
+                "date": day,
+                "present": row.get("present", 0) if row else 0,
+                "absent": row.get("absent", 0) if row else 0,
+                "total": row.get("total", 0) if row else 0,
+            }
+        )
+
+    return DashboardSummaryResponse(
+        active_students=active_students,
+        active_teachers=active_teachers,
+        timetable_status=timetable_status,
+        timetable_generated_at=timetable_generated_at,
+        substitutions_today=substitutions_today,
+        weekly_attendance=weekly_attendance,
+    )
