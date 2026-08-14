@@ -28,7 +28,7 @@ export function PageHeading({
     >
       <div className="flex items-start gap-3">
         {icon && (
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+          <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
             {icon}
           </span>
         )}
@@ -55,7 +55,7 @@ export function EmptyState({
 }) {
   return (
     <div className={cn("flex flex-col items-center justify-center gap-3 px-6 py-14 text-center", className)}>
-      <span className="grid h-14 w-14 place-items-center rounded-2xl bg-secondary text-muted-foreground">
+      <span aria-hidden="true" className="grid h-14 w-14 place-items-center rounded-2xl bg-secondary text-muted-foreground">
         <Icon className="h-6 w-6" />
       </span>
       <div>
@@ -106,8 +106,8 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
 
   const Icon = icon
   return (
-    <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-      <span className="grid h-14 w-14 place-items-center rounded-2xl bg-destructive/10 text-destructive">
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center" role="alert">
+      <span aria-hidden="true" className="grid h-14 w-14 place-items-center rounded-2xl bg-destructive/10 text-destructive">
         <Icon className="h-6 w-6" />
       </span>
       <div>
