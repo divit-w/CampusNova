@@ -133,7 +133,7 @@ export default function DocumentsPage() {
 
       <AnimatePresence>
         {error ? (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-4 rounded-2xl border border-border bg-card">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-4 rounded-2xl border border-border glass-surface">
             <ErrorState error={error} onRetry={extract} />
           </motion.div>
         ) : null}

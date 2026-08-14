@@ -53,7 +53,7 @@ export default function TransportPage() {
           <AnimatePresence mode="wait">
             {error ? (
               <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div className="rounded-2xl border border-border bg-card">
+                <div className="rounded-2xl border border-border glass-surface">
                   <ErrorState error={error} onRetry={() => optimize(vehicles)} />
                 </div>
               </motion.div>

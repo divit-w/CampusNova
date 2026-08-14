@@ -66,7 +66,7 @@ export default function KnowledgePage() {
         actions={<KnowledgeUploadControl />}
       />
 
-      <div className="flex h-[calc(100vh-15rem)] min-h-[420px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+      <div className="flex h-[calc(100vh-15rem)] min-h-[420px] flex-col overflow-hidden rounded-2xl border border-border glass-surface shadow-soft">
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-6 sm:px-6">
           {messages.length === 0 && !loading && (
             <motion.div

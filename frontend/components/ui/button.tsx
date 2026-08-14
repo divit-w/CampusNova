@@ -12,8 +12,8 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-gradient-to-r from-[hsl(var(--primary))] to-[hsl(var(--live))] text-primary-foreground shadow-inset-soft hover:scale-[1.02] hover:shadow-glow-btn-primary hover:brightness-105",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/70",
-        outline: "border border-border bg-card hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-white/60 backdrop-blur-md border border-white/40 text-foreground shadow-sm hover:scale-[1.02] hover:bg-white/80 transition-all duration-300 ease-spring",
+        outline: "border border-white/40 bg-transparent backdrop-blur-md text-foreground shadow-sm hover:scale-[1.02] hover:bg-white/40 transition-all duration-300 ease-spring",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         destructive:
           "bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground shadow-inset-soft hover:scale-[1.02] hover:shadow-glow-btn-destructive hover:brightness-105",
