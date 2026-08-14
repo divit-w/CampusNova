@@ -75,7 +75,7 @@ function AttendanceCard() {
 
       {hasRecords ? (
         <>
-          <p className="mt-4 text-2xl font-semibold tracking-tight tabular-nums">{percentage}%</p>
+          <p className="text-gradient-brand mt-4 text-2xl font-semibold tracking-tight tabular-nums">{percentage}%</p>
           <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary">
             <motion.div
               initial={{ width: 0 }}
@@ -160,7 +160,7 @@ export default function StudentPortalPage() {
                 const color = getSubjectColor(cls.subject)
                 return (
                   <motion.div key={cls.class_id} variants={listItem}>
-                    <Card className="h-full p-4 transition-shadow duration-300 hover:shadow-soft-lg">
+                    <Card className="h-full p-4 transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-glow-primary">
                       <div className="flex items-start justify-between gap-2">
                         <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${color.bg} ${color.text}`}>
                           <BookOpen className="h-4 w-4" />
@@ -196,9 +196,9 @@ export default function StudentPortalPage() {
 
           <motion.div variants={riseItem}>
             <Card className="flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between border-b border-border p-5">
+              <div className="flex items-center justify-between border-b border-border/60 p-5">
                 <div className="flex items-center gap-2.5">
-                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-live/10 text-live">
+                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-live/15 to-primary/10 text-live">
                     <Radio className="h-[18px] w-[18px]" />
                   </span>
                   <div>
