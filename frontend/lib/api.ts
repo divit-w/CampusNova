@@ -1,13 +1,19 @@
 import { API_V1, TOKEN_STORAGE_KEY } from "./config"
 import type {
+  AttendanceSummaryResponse,
   ClassResponse,
+  ClockInResponse,
   GenerateJobAck,
+  ProcessSheetResponse,
   PromptResponse,
   ResolveConflictResponse,
   ResourceConflictRequest,
+  StudentRecord,
   TimetableConstraintPayload,
   TimetableJob,
   Token,
+  TransportOptimizationRequest,
+  TransportOptimizationResponse,
   User,
 } from "./types"
 
@@ -55,12 +61,14 @@ interface RequestOptions {
   body?: unknown
   /** send as application/x-www-form-urlencoded (OAuth2 login) */
   form?: Record<string, string>
+  /** send as multipart/form-data (file uploads) — browser sets the boundary header */
+  formData?: FormData
   auth?: boolean
   signal?: AbortSignal
 }
 
 async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, form, auth = true, signal } = opts
+  const { method = "GET", body, form, formData, auth = true, signal } = opts
   const headers: Record<string, string> = {}
 
   if (auth) {
@@ -72,6 +80,9 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   if (form) {
     headers["Content-Type"] = "application/x-www-form-urlencoded"
     payload = new URLSearchParams(form).toString()
+  } else if (formData) {
+    // Do NOT set Content-Type — the browser fills in the multipart boundary.
+    payload = formData
   } else if (body !== undefined) {
     headers["Content-Type"] = "application/json"
     payload = JSON.stringify(body)
@@ -145,5 +156,34 @@ export const api = {
   /* Teacher portal (teacher) */
   async teacherClasses(): Promise<ClassResponse[]> {
     return request<ClassResponse[]>("/portals/teacher/my-classes")
+  },
+
+  /* Attendance (teacher, admin) */
+  async processAttendanceSheet(file: File, date?: string): Promise<ProcessSheetResponse> {
+    const fd = new FormData()
+    fd.append("file", file)
+    if (date) fd.append("date", date)
+    return request<ProcessSheetResponse>("/attendance/process-sheet", { method: "POST", formData: fd })
+  },
+  async facultyClockIn(latitude: number, longitude: number, file: File): Promise<ClockInResponse> {
+    const fd = new FormData()
+    fd.append("latitude", String(latitude))
+    fd.append("longitude", String(longitude))
+    fd.append("file", file)
+    return request<ClockInResponse>("/attendance/faculty-clock-in", { method: "POST", formData: fd })
+  },
+
+  /* Attendance analytics (admin) */
+  async attendanceSummary(date?: string): Promise<AttendanceSummaryResponse> {
+    const qs = date ? `?date=${encodeURIComponent(date)}` : ""
+    return request<AttendanceSummaryResponse>(`/admin/attendance/summary${qs}`)
+  },
+  async roster(limit = 100): Promise<StudentRecord[]> {
+    return request<StudentRecord[]>(`/admin/students?limit=${limit}`)
+  },
+
+  /* Transport (admin) */
+  async optimizeRoutes(payload: TransportOptimizationRequest): Promise<TransportOptimizationResponse> {
+    return request<TransportOptimizationResponse>("/transport/optimize-routes", { method: "POST", body: payload })
   },
 }

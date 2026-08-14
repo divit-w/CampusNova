@@ -147,3 +147,73 @@ export interface FeedAlert {
   message: string
   receivedAt: number
 }
+
+/* ── Attendance — app/api/v1/endpoints/attendance.py + admin_erp.py ──── */
+
+/** POST /attendance/process-sheet */
+export interface ProcessSheetResponse {
+  status: string
+  message: string
+  processed_count: number
+}
+
+/** POST /attendance/faculty-clock-in */
+export interface ClockInResponse {
+  status: string
+  message: string
+}
+
+/** GET /admin/attendance/summary — per-student present/absent counts for one date. */
+export interface AttendanceStudentRecord {
+  student_id: string
+  total: number
+  present: number
+  absent: number
+}
+export interface AttendanceSummaryResponse {
+  date: string
+  total_students: number
+  records: AttendanceStudentRecord[]
+}
+
+/** app/schemas/core_erp.py :: StudentResponse (roster row) */
+export interface StudentRecord {
+  student_id: string
+  full_name: string
+  grade: string
+  section: string
+  email: string
+}
+
+/* ── Transport — app/schemas/transport.py ───────────────────────────── */
+
+export interface VehicleSpec {
+  vehicle_id: string
+  capacity: number
+  /** [latitude, longitude] */
+  start_location: [number, number]
+}
+
+export interface TransportOptimizationRequest {
+  vehicles: VehicleSpec[]
+}
+
+export interface RouteStop {
+  stop_order: number
+  student_ids: string[]
+  location: [number, number]
+}
+
+export interface OptimizedRoute {
+  vehicle_id: string
+  assigned_student_count: number
+  estimated_distance_km: number
+  estimated_duration_min: number
+  stops: RouteStop[]
+}
+
+export interface TransportOptimizationResponse {
+  total_vehicles_used: number
+  total_students_routed: number
+  routes: OptimizedRoute[]
+}
