@@ -23,7 +23,7 @@ import type {
   User,
 } from "./types"
 
-/** Normalized error that carries the HTTP status so UI can branch on 401/403/429/502. */
+/** Normalized error that carries the HTTP status so UI can branch on 401/403/413/429/502. */
 export class ApiError extends Error {
   status: number
   detail: string
@@ -109,6 +109,9 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   }
 
   if (!res.ok) {
+    // 413: Payload Too Large — render polished message, not a raw crash.
+    // 429: Rate Limited — already handled in ErrorState.
+    // 502/503/504: Upstream AI unavailable — handled in ErrorState.
     throw new ApiError(res.status, await extractDetail(res))
   }
 
@@ -126,6 +129,9 @@ export const api = {
   },
   post<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
     return request<T>(path, { method: "POST", body, signal })
+  },
+  delete<T>(path: string, signal?: AbortSignal): Promise<T> {
+    return request<T>(path, { method: "DELETE", signal })
   },
 
   /** OAuth2 password flow — form-encoded username/password. */
@@ -216,6 +222,14 @@ export const api = {
     fd.append("file", file)
     return request<KnowledgeUploadResponse>("/knowledge/upload", { method: "POST", formData: fd })
   },
+  /** Lists all uploaded knowledge/school documents (admin only). */
+  async listKnowledgeDocuments(skip = 0, limit = 50): Promise<KnowledgeDocumentSummary[]> {
+    return request<KnowledgeDocumentSummary[]>(`/knowledge/documents?skip=${skip}&limit=${limit}`)
+  },
+  /** Deletes a knowledge document and its ChromaDB vectors (admin only). */
+  async deleteKnowledgeDocument(docId: string): Promise<void> {
+    return request<void>(`/knowledge/documents/${encodeURIComponent(docId)}`, { method: "DELETE" })
+  },
 
   /* Document intake / OCR (admin) */
   async extractDocument(file: File): Promise<DocumentExtractResponse> {
@@ -223,4 +237,74 @@ export const api = {
     fd.append("file", file)
     return request<DocumentExtractResponse>("/documents/extract", { method: "POST", formData: fd })
   },
+
+  /* Admin user management (admin only) */
+  async listStudents(skip = 0, limit = 50): Promise<AdminStudentRecord[]> {
+    return request<AdminStudentRecord[]>(`/admin/students?skip=${skip}&limit=${limit}`)
+  },
+  async createStudent(body: CreateStudentPayload): Promise<AdminStudentRecord> {
+    return request<AdminStudentRecord>("/admin/students", { method: "POST", body })
+  },
+  async listTeachers(skip = 0, limit = 50): Promise<AdminTeacherRecord[]> {
+    return request<AdminTeacherRecord[]>(`/admin/teachers?skip=${skip}&limit=${limit}`)
+  },
+  async createTeacher(body: CreateTeacherPayload): Promise<AdminTeacherRecord> {
+    return request<AdminTeacherRecord>("/admin/teachers", { method: "POST", body })
+  },
+  async listClasses(skip = 0, limit = 50): Promise<ClassResponse[]> {
+    return request<ClassResponse[]>(`/admin/classes?skip=${skip}&limit=${limit}`)
+  },
+  async createClass(body: CreateClassPayload): Promise<ClassResponse> {
+    return request<ClassResponse>("/admin/classes", { method: "POST", body })
+  },
 }
+
+/* ── Admin user management payload types ────────────────────────────── */
+
+export interface KnowledgeDocumentSummary {
+  id: string
+  title: string
+  total_chunks: number
+  file_hash: string
+  upload_date: string
+}
+
+export interface AdminStudentRecord {
+  student_id: string
+  full_name: string
+  grade: string
+  section: string
+  email: string
+}
+
+export interface CreateStudentPayload {
+  student_id: string
+  full_name: string
+  grade: string
+  section: string
+  email: string
+}
+
+export interface AdminTeacherRecord {
+  teacher_id: string
+  full_name: string
+  subjects: string[]
+  email: string
+}
+
+export interface CreateTeacherPayload {
+  teacher_id: string
+  full_name: string
+  subjects: string[]
+  email: string
+}
+
+export interface CreateClassPayload {
+  class_id: string
+  teacher_id: string
+  subject: string
+  schedule_time: string
+  grade: string
+  section: string
+}
+

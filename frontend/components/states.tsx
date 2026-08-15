@@ -90,6 +90,11 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
         title = "Not enough permissions"
         description = "Your role doesn't have access to this action."
         break
+      case 413:
+        icon = AlertTriangle
+        title = "File too large"
+        description = "The upload exceeds the maximum allowed size (5 MB). Please compress or resize the file and try again."
+        break
       case 429:
         icon = Clock
         title = "You're going a little fast"
@@ -99,7 +104,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
       case 503:
       case 504:
         icon = ServerCrash
-        title = "AI service temporarily unavailable"
+        title = "Upstream AI service temporarily unavailable"
         description = "The AI provider didn't respond. This is usually transient — please retry shortly."
         break
       default:

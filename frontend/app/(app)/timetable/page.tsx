@@ -4,7 +4,14 @@ import { useState } from "react"
 import dynamic from "next/dynamic"
 import useSWR from "swr"
 import { motion, AnimatePresence } from "framer-motion"
-import { CalendarRange, Sparkles, Play, FileJson, RotateCcw } from "lucide-react"
+import {
+  AlertTriangle,
+  CalendarRange,
+  FileJson,
+  Play,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react"
 
 import { api } from "@/lib/api"
 import type { TimetablePayload, TimetableStatusResponse } from "@/lib/types"
@@ -20,30 +27,131 @@ import { Skeleton } from "@/components/ui/skeleton"
 // of the initial bundle. SolverProgress owns its own rAF animation loop and
 // TimetableGrid does non-trivial memoized grid computation — neither is
 // needed for the idle/empty state most visits start on.
-const SolverProgress = dynamic(() => import("@/components/solver-progress").then((m) => m.SolverProgress), {
-  loading: () => <Skeleton className="h-64 w-full rounded-xl" />,
-})
-const TimetableGrid = dynamic(() => import("@/components/timetable-grid").then((m) => m.TimetableGrid), {
-  loading: () => <Skeleton className="h-64 w-full rounded-xl" />,
-})
+const SolverProgress = dynamic(
+  () => import("@/components/solver-progress").then((m) => m.SolverProgress),
+  { loading: () => <Skeleton className="h-64 w-full rounded-xl" /> },
+)
+const TimetableGrid = dynamic(
+  () => import("@/components/timetable-grid").then((m) => m.TimetableGrid),
+  { loading: () => <Skeleton className="h-64 w-full rounded-xl" /> },
+)
+
+/**
+ * Animated skeleton "matrix" shown while the CP-SAT solver is processing.
+ * 5 rows × 6 columns mimics a timetable grid so the layout feels purposeful
+ * rather than a blank spinner.
+ */
+function ProcessingSkeletonMatrix() {
+  return (
+    <div className="space-y-3 p-2">
+      <div className="mb-4 flex items-center gap-2">
+        <Skeleton className="h-5 w-5 rounded-full" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+      {Array.from({ length: 5 }).map((_, row) => (
+        <div key={row} className="grid grid-cols-6 gap-2">
+          {Array.from({ length: 6 }).map((_, col) => (
+            <Skeleton
+              key={col}
+              className="h-10 rounded-lg"
+              style={{ animationDelay: `${(row * 6 + col) * 40}ms` }}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Actionable remediation advice shown when the CP-SAT solver returns INFEASIBLE
+ * or MODEL_INVALID. Replaces the generic "Solver failed" empty state with
+ * concrete steps the admin can take to resolve the constraint conflict.
+ */
+function InfeasibilityGuidanceCard({ errorDetail }: { errorDetail: string }) {
+  return (
+    <div className="flex flex-col gap-4 px-4 py-8">
+      <div className="flex items-center gap-3">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-500">
+          <AlertTriangle className="h-6 w-6" />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            Constraint Conflict Detected
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Solver status: {errorDetail}
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4 text-sm">
+        <p className="font-medium text-foreground">Remediation steps:</p>
+        <ul className="mt-2 space-y-1.5 text-muted-foreground">
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 shrink-0 text-amber-500">→</span>
+            <span>
+              <strong className="text-foreground">Relax fixed faculty slots</strong> — remove
+              or reduce{" "}
+              <code className="rounded bg-secondary px-1 text-xs">fixed_slots</code>{" "}
+              entries that pin a specific teacher to a specific period.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 shrink-0 text-amber-500">→</span>
+            <span>
+              <strong className="text-foreground">Allocate additional rooms</strong> — add
+              more room entries if multiple cohorts need the same period simultaneously.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 shrink-0 text-amber-500">→</span>
+            <span>
+              <strong className="text-foreground">Reduce required weekly hours</strong> —
+              lower{" "}
+              <code className="rounded bg-secondary px-1 text-xs">required_weekly_hours</code>{" "}
+              for any subject that exceeds available period slots.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-0.5 shrink-0 text-amber-500">→</span>
+            <span>
+              <strong className="text-foreground">Increase scheduling window</strong> — raise{" "}
+              <code className="rounded bg-secondary px-1 text-xs">days_per_week</code> or{" "}
+              <code className="rounded bg-secondary px-1 text-xs">periods_per_day</code> to
+              give the solver more space.
+            </span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  )
+}
 
 export default function TimetablePage() {
-  const [draft, setDraft] = useState<string>(() => JSON.stringify(SAMPLE_TIMETABLE_PAYLOAD, null, 2))
+  const [draft, setDraft] = useState<string>(() =>
+    JSON.stringify(SAMPLE_TIMETABLE_PAYLOAD, null, 2),
+  )
   const [jsonError, setJsonError] = useState<string | null>(null)
-  // The payload we actually submitted — used for id->name lookups in the grid.
+  // The payload we actually submitted — used for id-to-name lookups in the grid.
   const [submitted, setSubmitted] = useState<TimetablePayload | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<unknown>(null)
 
-  // Poll job status. Audit P0-2: interval is 1000ms ONLY while "processing",
-  // and 0 (stopped) on any terminal state — no infinite polling loop.
+  // Poll job status with SWR resilience flags:
+  //   shouldRetryOnError: true  — transient network blips don't permanently kill the loop.
+  //   errorRetryInterval: 1500  — 1.5 s between retry attempts on error.
+  //   errorRetryCount: 5        — surface a persistent error only after 5 consecutive failures.
+  //   refreshInterval: dynamic  — 1000 ms while "processing", 0 (stopped) on terminal states.
   const { data: job, error: pollError } = useSWR<TimetableStatusResponse>(
     jobId ? `/timetable/status/${jobId}` : null,
     (path: string) => api.get<TimetableStatusResponse>(path),
     {
       refreshInterval: (latest) => (latest?.status === "processing" ? 1000 : 0),
       revalidateOnFocus: false,
-      shouldRetryOnError: false,
+      shouldRetryOnError: true,
+      errorRetryInterval: 1500,
+      errorRetryCount: 5,
     },
   )
 
@@ -70,7 +178,10 @@ export default function TimetablePage() {
     }
     try {
       reset()
-      const res = await api.post<{ job_id: string; status: string }>("/timetable/generate", parsed)
+      const res = await api.post<{ job_id: string; status: string }>(
+        "/timetable/generate",
+        parsed,
+      )
       setSubmitted(parsed)
       setJobId(res.job_id)
     } catch (err) {
@@ -79,9 +190,17 @@ export default function TimetablePage() {
   }
 
   const status = job?.status
-  const isProcessing = !!jobId && (status === "processing" || (!status && !pollError))
+  const isProcessing =
+    !!jobId && (status === "processing" || (!status && !pollError))
   const isDone = status === "completed" || status === "failed"
   const result = job?.result ?? null
+
+  // Detect infeasibility: backend sets status="failed" and error contains
+  // "INFEASIBLE" or "MODEL_INVALID" when the CP-SAT solver cannot find a solution.
+  const isInfeasible =
+    isDone &&
+    status === "failed" &&
+    ((job?.error?.includes("INFEASIBLE")) || (job?.error?.includes("MODEL_INVALID")))
 
   return (
     <div className="space-y-6">
@@ -107,7 +226,12 @@ export default function TimetablePage() {
               <FileJson aria-hidden="true" className="h-4 w-4 text-primary" />
               Constraints
             </div>
-            <Button variant="ghost" size="sm" onClick={loadSample} className="gap-1.5 text-xs">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={loadSample}
+              className="gap-1.5 text-xs"
+            >
               <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
               Load sample
             </Button>
@@ -136,15 +260,30 @@ export default function TimetablePage() {
         <Card className="min-h-[420px] p-4">
           <AnimatePresence mode="wait">
             {submitError ? (
-              <motion.div key="submit-error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div
+                key="submit-error"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
                 <ErrorState error={submitError} onRetry={generate} />
               </motion.div>
             ) : pollError ? (
-              <motion.div key="poll-error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div
+                key="poll-error"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
                 <ErrorState error={pollError} onRetry={generate} />
               </motion.div>
             ) : !jobId ? (
-              <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div
+                key="idle"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
                 <EmptyState
                   icon={CalendarRange}
                   title="No timetable yet"
@@ -152,11 +291,32 @@ export default function TimetablePage() {
                 />
               </motion.div>
             ) : isProcessing && submitted ? (
-              <motion.div key="solving" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div
+                key="solving"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <ProcessingSkeletonMatrix />
                 <SolverProgress payload={submitted} done={false} />
               </motion.div>
+            ) : isInfeasible ? (
+              <motion.div
+                key="infeasible"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={spring.gentle}
+              >
+                <InfeasibilityGuidanceCard errorDetail={job?.error ?? "INFEASIBLE"} />
+              </motion.div>
             ) : isDone && status === "failed" ? (
-              <motion.div key="failed" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div
+                key="failed"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
                 <EmptyState
                   icon={CalendarRange}
                   title="Solver failed"
@@ -180,3 +340,4 @@ export default function TimetablePage() {
     </div>
   )
 }
+

@@ -122,6 +122,10 @@ export interface ResolveConflictResponse {
   status: string
   substitute_teacher_id: string
   message: string
+  /** ML ranking score: subject expertise match (0–1). Used to render the "X% Match" badge. */
+  subject_compatibility_score: number
+  /** Composite suitability score from PredictiveAllocator (0–1). */
+  suitability_score: number
 }
 
 /* ── Portals — app/schemas/core_erp.py :: ClassResponse ─────────────── */
