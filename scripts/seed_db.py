@@ -21,26 +21,26 @@ async def seed_db():
     
     logger.info("Seeding students...")
     students = [
-        {"id": "s1", "name": "Alice Johnson", "batch": "A", "grade_level": 10},
-        {"id": "s2", "name": "Bob Smith", "batch": "B", "grade_level": 11},
-        {"id": "s3", "name": "Charlie Brown", "batch": "A", "grade_level": 10},
-        {"id": "s4", "name": "Diana Ross", "batch": "C", "grade_level": 12},
-        {"id": "s5", "name": "Ethan Hunt", "batch": "B", "grade_level": 11},
-        {"id": "s6", "name": "Fiona Gallagher", "batch": "A", "grade_level": 10},
-        {"id": "s7", "name": "George Constanza", "batch": "C", "grade_level": 12},
-        {"id": "s8", "name": "Hannah Abbott", "batch": "B", "grade_level": 11},
-        {"id": "s9", "name": "Ian Malcolm", "batch": "A", "grade_level": 10},
-        {"id": "s10", "name": "Julia Child", "batch": "C", "grade_level": 12}
+        {"student_id": "s1", "full_name": "Alice Johnson", "section": "A", "grade": "10", "email": "s1@school.edu"},
+        {"student_id": "s2", "full_name": "Bob Smith", "section": "B", "grade": "11", "email": "s2@school.edu"},
+        {"student_id": "s3", "full_name": "Charlie Brown", "section": "A", "grade": "10", "email": "s3@school.edu"},
+        {"student_id": "s4", "full_name": "Diana Ross", "section": "C", "grade": "12", "email": "s4@school.edu"},
+        {"student_id": "s5", "full_name": "Ethan Hunt", "section": "B", "grade": "11", "email": "s5@school.edu"},
+        {"student_id": "s6", "full_name": "Fiona Gallagher", "section": "A", "grade": "10", "email": "s6@school.edu"},
+        {"student_id": "s7", "full_name": "George Constanza", "section": "C", "grade": "12", "email": "s7@school.edu"},
+        {"student_id": "s8", "full_name": "Hannah Abbott", "section": "B", "grade": "11", "email": "s8@school.edu"},
+        {"student_id": "s9", "full_name": "Ian Malcolm", "section": "A", "grade": "10", "email": "s9@school.edu"},
+        {"student_id": "s10", "full_name": "Julia Child", "section": "C", "grade": "12", "email": "s10@school.edu"}
     ]
     await db.students.insert_many(students)
     
     logger.info("Seeding teachers...")
     teachers = [
-        {"id": "t1", "name": "Dr. Alan Grant", "max_hours": 15},
-        {"id": "t2", "name": "Prof. Charles Xavier", "max_hours": 10},
-        {"id": "t3", "name": "Ms. Frizzle", "max_hours": 20},
-        {"id": "t4", "name": "Walter White", "max_hours": 12},
-        {"id": "t5", "name": "Minerva McGonagall", "max_hours": 18}
+        {"teacher_id": "t1", "full_name": "Dr. Alan Grant", "subjects": ["Science"], "email": "t1@school.edu"},
+        {"teacher_id": "t2", "full_name": "Prof. Charles Xavier", "subjects": ["Mathematics"], "email": "t2@school.edu"},
+        {"teacher_id": "t3", "full_name": "Ms. Frizzle", "subjects": ["Science"], "email": "t3@school.edu"},
+        {"teacher_id": "t4", "full_name": "Walter White", "subjects": ["Science", "Mathematics"], "email": "t4@school.edu"},
+        {"teacher_id": "t5", "full_name": "Minerva McGonagall", "subjects": ["English"], "email": "t5@school.edu"}
     ]
     await db.teachers.insert_many(teachers)
     

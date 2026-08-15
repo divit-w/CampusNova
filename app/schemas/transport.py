@@ -1,4 +1,5 @@
 from typing import List, Tuple, Optional
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 
@@ -43,3 +44,11 @@ class TransportOptimizationResponse(BaseModel):
     total_vehicles_used: int
     total_students_routed: int
     routes: List[OptimizedRoute]
+
+
+class TransportRoutesSummaryResponse(BaseModel):
+    """Aggregate view of the most recently generated route plan, for admin KPI display."""
+    has_plan: bool
+    active_routes: int = 0
+    total_students_routed: int = 0
+    generated_at: Optional[datetime] = None
