@@ -58,7 +58,7 @@ export function EmptyState({
 }) {
   return (
     <div className={cn("flex flex-col items-center justify-center gap-3 px-6 py-14 text-center", className)}>
-      <span aria-hidden="true" className="grid h-14 w-14 place-items-center rounded-2xl bg-secondary text-muted-foreground">
+      <span aria-hidden="true" className="grid h-14 w-14 place-items-center rounded-xl bg-secondary text-muted-foreground">
         <Icon className="h-6 w-6" />
       </span>
       <div>
@@ -110,7 +110,7 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
   const Icon = icon
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center" role="alert">
-      <span aria-hidden="true" className="grid h-14 w-14 place-items-center rounded-2xl bg-destructive/10 text-destructive">
+      <span aria-hidden="true" className="grid h-14 w-14 place-items-center rounded-xl bg-destructive/10 text-destructive">
         <Icon className="h-6 w-6" />
       </span>
       <div>

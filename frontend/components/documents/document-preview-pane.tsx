@@ -36,7 +36,7 @@ export function DocumentPreviewPane({
   const inputRef = useRef<HTMLInputElement>(null)
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border glass-surface p-4 shadow-soft sm:p-5">
+    <div className="flex h-full flex-col rounded-xl border border-border glass-surface p-4 shadow-soft sm:p-5">
       <div className="flex items-center gap-2.5">
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
           <ImageIcon className="h-[18px] w-[18px]" />
@@ -63,7 +63,7 @@ export function DocumentPreviewPane({
         tabIndex={0}
         aria-label="Upload document image"
         className={cn(
-          "mt-4 flex flex-1 flex-col overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-300 ease-spring",
+          "mt-4 flex flex-1 flex-col overflow-hidden rounded-xl border-2 border-dashed transition-all duration-300 ease-spring",
           file ? "border-transparent" : dragging ? "cursor-pointer border-primary bg-primary/5 scale-[1.01]" : "cursor-pointer border-border hover:border-primary/40 hover:bg-accent/40",
         )}
       >
@@ -111,7 +111,7 @@ export function DocumentPreviewPane({
               exit={{ opacity: 0 }}
               className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center"
             >
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-secondary text-muted-foreground">
+              <span className="grid h-12 w-12 place-items-center rounded-xl bg-secondary text-muted-foreground">
                 <UploadCloud className="h-5 w-5" />
               </span>
               <p className="text-sm font-medium">Drop a document image here</p>

@@ -15,7 +15,7 @@ import type { TransportOptimizationResponse, VehicleSpec } from "@/lib/types"
 // of the initial bundle since it's secondary to the fleet builder form.
 const RouteMapPreview = dynamic(
   () => import("@/components/transport/route-map-preview").then((m) => m.RouteMapPreview),
-  { loading: () => <Skeleton className="h-full min-h-[420px] w-full rounded-2xl" /> },
+  { loading: () => <Skeleton className="h-full min-h-[420px] w-full rounded-xl" /> },
 )
 
 export default function TransportPage() {
@@ -53,7 +53,7 @@ export default function TransportPage() {
           <AnimatePresence mode="wait">
             {error ? (
               <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div className="rounded-2xl glass-surface">
+                <div className="rounded-xl glass-surface">
                   <ErrorState error={error} onRetry={() => optimize(vehicles)} />
                 </div>
               </motion.div>

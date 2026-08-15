@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { motion } from "framer-motion"
 import { CalendarRange, Loader2, Repeat2, Sparkles } from "lucide-react"
 import { BrandLogo } from "@/components/brand-logo"
@@ -67,10 +68,15 @@ export default function LoginPage() {
           }}
         />
         <div className="relative flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 backdrop-blur">
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 19V5l14 14V5" />
-            </svg>
+          <span className="relative grid h-9 w-9 overflow-hidden shrink-0 place-items-center rounded-xl bg-white/15 backdrop-blur">
+            <Image
+              src="/logo.png"
+              alt="CampusNova Logo"
+              fill
+              sizes="36px"
+              className="object-cover"
+              priority
+            />
           </span>
           <span className="text-[15px] font-semibold tracking-tight">CampusNova</span>
         </div>
@@ -89,7 +95,7 @@ export default function LoginPage() {
               <motion.li
                 key={h.title}
                 variants={riseItem}
-                className="flex items-start gap-3.5 rounded-2xl bg-white/10 p-3.5 backdrop-blur"
+                className="flex items-start gap-3.5 rounded-xl bg-white/10 p-3.5 backdrop-blur"
               >
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/15">
                   <h.icon className="h-5 w-5" />
@@ -114,7 +120,7 @@ export default function LoginPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={spring}
-          className="bg-white/60 backdrop-blur-2xl border border-white/50 shadow-xl w-full max-w-sm rounded-3xl p-8 sm:p-10"
+          className="bg-white/60 backdrop-blur-2xl border border-white/50 shadow-xl w-full max-w-sm rounded-xl p-8 sm:p-10"
         >
           <div className="mb-8 lg:hidden">
             <BrandLogo />

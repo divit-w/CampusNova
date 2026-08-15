@@ -105,7 +105,7 @@ export function VisionUploadZone() {
         tabIndex={0}
         aria-label="Upload attendance sheet"
         className={cn(
-          "mt-4 flex flex-1 cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-all duration-300 ease-spring",
+          "mt-4 flex flex-1 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-all duration-300 ease-spring",
           dragging ? "border-primary bg-primary/5 scale-[1.01]" : "border-border hover:border-primary/40 hover:bg-accent/40",
         )}
       >
@@ -142,7 +142,7 @@ export function VisionUploadZone() {
             </motion.div>
           ) : (
             <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-secondary text-muted-foreground">
+              <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-secondary text-muted-foreground">
                 <UploadCloud className="h-5 w-5" />
               </span>
               <p className="mt-3 text-sm font-medium">Drop a register photo or PDF</p>
