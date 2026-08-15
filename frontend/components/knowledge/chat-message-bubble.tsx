@@ -46,7 +46,7 @@ export function ChatMessageBubble({ message, onRetry }: { message: ChatMessage; 
               ? "rounded-br-md bg-primary text-primary-foreground"
               : message.isError
                 ? "rounded-bl-md border border-destructive/20 bg-destructive/[0.06] text-foreground"
-                : "rounded-bl-md border border-border bg-card text-foreground",
+                : "rounded-bl-md border border-border glass-surface text-foreground",
           )}
         >
           {message.content}

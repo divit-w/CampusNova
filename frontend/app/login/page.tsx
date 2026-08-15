@@ -114,7 +114,7 @@ export default function LoginPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={spring}
-          className="glass-surface w-full max-w-sm rounded-3xl p-8 shadow-soft-lg sm:p-10"
+          className="bg-white/60 backdrop-blur-2xl border border-white/50 shadow-xl w-full max-w-sm rounded-3xl p-8 sm:p-10"
         >
           <div className="mb-8 lg:hidden">
             <BrandLogo />
