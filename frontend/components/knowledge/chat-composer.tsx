@@ -54,13 +54,24 @@ export function ChatComposer({
           size="icon"
           aria-label="Send message"
           aria-busy={loading}
-          className={cn("mb-0.5 mr-0.5 h-9 w-9 shrink-0 rounded-full")}
+          className="mb-0.5 mr-0.5 h-9 w-9 shrink-0 rounded-full transition-opacity disabled:opacity-60"
         >
-          {loading ? (
-            <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
-          ) : (
-            <ArrowUp aria-hidden="true" className="h-4 w-4" />
-          )}
+          <span className="relative grid h-4 w-4 place-items-center">
+            <ArrowUp
+              aria-hidden="true"
+              className={cn(
+                "absolute h-4 w-4 transition-all duration-150",
+                loading ? "scale-50 opacity-0" : "scale-100 opacity-100"
+              )}
+            />
+            <Loader2
+              aria-hidden="true"
+              className={cn(
+                "absolute h-4 w-4 animate-spin transition-all duration-150",
+                loading ? "scale-100 opacity-100" : "scale-50 opacity-0"
+              )}
+            />
+          </span>
         </Button>
       </div>
       <p className="mt-1.5 px-1 text-center text-[11px] text-muted-foreground/70">

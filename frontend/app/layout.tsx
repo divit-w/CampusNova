@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { Toaster } from "sonner"
+import NextTopLoader from "nextjs-toploader"
 import { AuthProvider } from "@/lib/auth"
 import "./globals.css"
 
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable}`}>
       <body className="font-sans antialiased">
+        <NextTopLoader color="#0a84ff" showSpinner={false} />
         <AuthProvider>{children}</AuthProvider>
         <Toaster
           position="top-right"
