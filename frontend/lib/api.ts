@@ -21,6 +21,8 @@ import type {
   TransportOptimizationResponse,
   TransportRoutesSummaryResponse,
   User,
+  ExtractedAttendanceRecord,
+  SyncBulkResponse
 } from "./types"
 
 /** Normalized error that carries the HTTP status so UI can branch on 401/403/413/429/502. */
@@ -185,6 +187,9 @@ export const api = {
     fd.append("file", file)
     if (date) fd.append("date", date)
     return request<ProcessSheetResponse>("/attendance/process-sheet", { method: "POST", formData: fd })
+  },
+  async syncAttendanceRecords(date: string, records: ExtractedAttendanceRecord[]): Promise<SyncBulkResponse> {
+    return request<SyncBulkResponse>("/attendance/sync-bulk", { method: "POST", body: { date, records } })
   },
   async facultyClockIn(latitude: number, longitude: number, file: File): Promise<ClockInResponse> {
     const fd = new FormData()
