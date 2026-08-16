@@ -104,10 +104,11 @@ async def list_classes(
 
 @router.get("/attendance/summary")
 async def attendance_summary(
-    date: Optional[str] = Query(
-        default=None,
-        description="Date in YYYY-MM-DD format. Defaults to today (UTC).",
+    date: str = Query(
+        None,
+        description="Optional date in YYYY-MM-DD format. Defaults to today's local date based on tz_offset_minutes.",
     ),
+    tz_offset_minutes: int = Query(0, description="Client timezone offset from UTC in minutes (UTC - Local)."),
     current_user: dict = Depends(require_roles(["admin"])),
 ):
     """
@@ -115,7 +116,7 @@ async def attendance_summary(
     Uses a MongoDB $group aggregation pipeline — avoids loading all records into memory.
     """
     if not date:
-        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date = (datetime.now(timezone.utc) - timedelta(minutes=tz_offset_minutes)).strftime("%Y-%m-%d")
 
     pipeline = [
         {"$match": {"date": date}},
@@ -147,6 +148,7 @@ async def attendance_summary(
 
 @router.get("/dashboard-summary", response_model=DashboardSummaryResponse)
 async def dashboard_summary(
+    tz_offset_minutes: int = Query(0, description="Client timezone offset from UTC in minutes (UTC - Local)."),
     current_user: dict = Depends(require_roles(["admin"])),
 ):
     """
@@ -154,7 +156,8 @@ async def dashboard_summary(
     chart, and quick-action live statuses. Every value is read straight from
     existing collections — no derived/mocked fields.
     """
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    client_now = datetime.now(timezone.utc) - timedelta(minutes=tz_offset_minutes)
+    today = client_now.strftime("%Y-%m-%d")
 
     active_students = await mongo_db.students_collection.count_documents({})
     active_teachers = await mongo_db.teachers_collection.count_documents({})
@@ -170,7 +173,7 @@ async def dashboard_summary(
     substitutions_today = await mongo_db.substitutions_collection.count_documents({"date": today})
 
     # Last 7 calendar days, oldest → newest, filling in zero-days that have no records.
-    window_start = (datetime.now(timezone.utc) - timedelta(days=6)).strftime("%Y-%m-%d")
+    window_start = (client_now - timedelta(days=6)).strftime("%Y-%m-%d")
     pipeline = [
         {"$match": {"date": {"$gte": window_start, "$lte": today}}},
         {
@@ -187,7 +190,7 @@ async def dashboard_summary(
 
     weekly_attendance = []
     for i in range(6, -1, -1):
-        day = (datetime.now(timezone.utc) - timedelta(days=i)).strftime("%Y-%m-%d")
+        day = (client_now - timedelta(days=i)).strftime("%Y-%m-%d")
         row = by_date.get(day)
         weekly_attendance.append(
             {

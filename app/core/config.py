@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None
     CHROMA_PERSIST_DIR: str = "./chroma_db"
+    # Embedding model served via OpenRouter. Override in .env if needed.
+    # nomic-ai/nomic-embed-text is no longer available on OpenRouter;
+    # text-embedding-3-small is the recommended drop-in.
+    EMBEDDING_MODEL: str = "openai/text-embedding-3-small"
     LOG_LEVEL: str = "INFO"
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:8000"]
     CAMPUS_LAT: float = 28.6304

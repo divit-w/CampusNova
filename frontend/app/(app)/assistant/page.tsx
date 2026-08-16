@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, CornerDownLeft, Loader2, Database, Zap } from "lucide-react"
+import { Sparkles, CornerDownLeft, Loader2, Database, Zap, Download } from "lucide-react"
 
 import { api } from "@/lib/api"
 import type { PromptResponse } from "@/lib/types"
@@ -37,9 +37,9 @@ export default function AssistantPage() {
     if (!trimmed || view.kind === "loading") return
     setView({ kind: "loading" })
     try {
-      const data = await api.post<PromptResponse>("/erp/prompt", { query: trimmed })
+      const data = await api.prompt(trimmed)
       setView({ kind: "success", data, query: trimmed })
-    } catch (err) {
+    } catch (err: any) {
       setView({ kind: "error", error: err })
     }
   }
@@ -57,6 +57,53 @@ export default function AssistantPage() {
     setQuery(prompt)
     textareaRef.current?.focus()
     runQuery(prompt)
+  }
+
+  function handleExportCsv() {
+    if (view.kind !== "success") return
+    
+    // Normalize to array
+    const rawData = view.data.results
+    const dataArray = Array.isArray(rawData) ? rawData : rawData ? [rawData] : []
+    
+    if (dataArray.length === 0) return
+    
+    // Extract headers
+    const headers = Array.from(
+      new Set(dataArray.flatMap((row) => Object.keys(row as Record<string, unknown>)))
+    )
+    
+    // Build CSV content
+    const csvRows = []
+    // Add header row
+    csvRows.push(headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(","))
+    
+    // Add data rows
+    for (const row of dataArray) {
+      const values = headers.map((header) => {
+        const val = (row as Record<string, unknown>)[header]
+        // Handle null, undefined, objects
+        const strVal = val === null || val === undefined 
+          ? "" 
+          : typeof val === "object"
+            ? JSON.stringify(val)
+            : String(val)
+            
+        return `"${strVal.replace(/"/g, '""')}"`
+      })
+      csvRows.push(values.join(","))
+    }
+    
+    const csvContent = csvRows.join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.setAttribute("download", "campusnova_export.csv")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -159,10 +206,38 @@ export default function AssistantPage() {
                   <Database className="h-3.5 w-3.5" />
                   {view.data.target_collection}
                 </Badge>
-                <span className="ml-auto max-w-full truncate text-xs text-muted-foreground">
-                  &ldquo;{view.query}&rdquo;
-                </span>
+                
+                <div className="ml-auto flex items-center gap-3">
+                  <span className="hidden max-w-[200px] truncate text-xs text-muted-foreground sm:inline-block">
+                    &ldquo;{view.query}&rdquo;
+                  </span>
+                  
+                  {(() => {
+                    const hasData = Array.isArray(view.data.results) 
+                      ? view.data.results.length > 0 
+                      : !!view.data.results;
+                    
+                    if (!hasData) return null;
+                    
+                    return (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-7 gap-1.5 text-xs"
+                        onClick={handleExportCsv}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Export CSV
+                      </Button>
+                    );
+                  })()}
+                </div>
               </div>
+              {view.data.summary && (
+                <div className="rounded-md bg-primary/10 p-4 border border-primary/20 text-sm text-primary">
+                  <strong>AI Summary:</strong> {view.data.summary}
+                </div>
+              )}
               <ResultRenderer results={view.data.results} />
             </Card>
           </motion.div>

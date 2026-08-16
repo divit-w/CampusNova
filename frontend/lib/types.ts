@@ -108,6 +108,7 @@ export interface PromptResponse {
   action_type: string
   target_collection: string
   results: Record<string, unknown>[] | Record<string, unknown>
+  summary?: string
 }
 
 /* ── Substitute — app/schemas/resources.py ──────────────────────────── */

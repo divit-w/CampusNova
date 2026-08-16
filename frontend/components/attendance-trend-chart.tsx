@@ -14,7 +14,8 @@ const chartConfig: ChartConfig = {
 }
 
 function dayLabel(iso: string): string {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString(undefined, { weekday: "short" })
+  // Using T12:00:00Z forces it to noon UTC, preventing local negative offsets from pushing it to the previous day
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined, { weekday: "short" })
 }
 
 /** Weekly attendance focal point — GET /admin/dashboard-summary :: weekly_attendance (7 real days). */
