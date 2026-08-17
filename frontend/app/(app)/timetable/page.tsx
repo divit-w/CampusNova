@@ -7,11 +7,14 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   AlertTriangle,
   CalendarRange,
-  FileJson,
+  
   Play,
   RotateCcw,
   Sparkles,
 } from "lucide-react"
+import { ConstraintBuilder } from "@/components/timetable/constraint-builder"
+import { AlgorithmExplainer } from "@/components/timetable/algorithm-explainer"
+
 
 import { api } from "@/lib/api"
 import type { TimetablePayload, TimetableStatusResponse } from "@/lib/types"
@@ -36,32 +39,7 @@ const TimetableGrid = dynamic(
   { loading: () => <Skeleton className="h-64 w-full rounded-xl" /> },
 )
 
-/**
- * Animated skeleton "matrix" shown while the CP-SAT solver is processing.
- * 5 rows × 6 columns mimics a timetable grid so the layout feels purposeful
- * rather than a blank spinner.
- */
-function ProcessingSkeletonMatrix() {
-  return (
-    <div className="space-y-3 p-2">
-      <div className="mb-4 flex items-center gap-2">
-        <Skeleton className="h-5 w-5 rounded-full" />
-        <Skeleton className="h-4 w-48" />
-      </div>
-      {Array.from({ length: 5 }).map((_, row) => (
-        <div key={row} className="grid grid-cols-6 gap-2">
-          {Array.from({ length: 6 }).map((_, col) => (
-            <Skeleton
-              key={col}
-              className="h-10 rounded-lg"
-              style={{ animationDelay: `${(row * 6 + col) * 40}ms` }}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  )
-}
+// Skeleton matrix has been replaced by the AlgorithmExplainer
 
 /**
  * Actionable remediation advice shown when the CP-SAT solver returns INFEASIBLE
@@ -129,9 +107,7 @@ function InfeasibilityGuidanceCard({ errorDetail }: { errorDetail: string }) {
 }
 
 export default function TimetablePage() {
-  const [draft, setDraft] = useState<string>(() =>
-    JSON.stringify(SAMPLE_TIMETABLE_PAYLOAD, null, 2),
-  )
+  const [draft, setDraft] = useState<TimetablePayload>(SAMPLE_TIMETABLE_PAYLOAD)
   const [jsonError, setJsonError] = useState<string | null>(null)
   // The payload we actually submitted — used for id-to-name lookups in the grid.
   const [submitted, setSubmitted] = useState<TimetablePayload | null>(null)
@@ -156,7 +132,7 @@ export default function TimetablePage() {
   )
 
   function loadSample() {
-    setDraft(JSON.stringify(SAMPLE_TIMETABLE_PAYLOAD, null, 2))
+    setDraft(SAMPLE_TIMETABLE_PAYLOAD)
     setJsonError(null)
   }
 
@@ -168,20 +144,11 @@ export default function TimetablePage() {
 
   async function generate() {
     setSubmitError(null)
-    let parsed: TimetablePayload
-    try {
-      parsed = JSON.parse(draft)
-      setJsonError(null)
-    } catch {
-      setJsonError("Invalid JSON — check for a trailing comma or missing bracket.")
-      return
-    }
+    const parsed = draft
+    setJsonError(null)
     try {
       reset()
-      const res = await api.post<{ job_id: string; status: string }>(
-        "/timetable/generate",
-        parsed,
-      )
+      const res = await api.optimizeTimetable(parsed)
       setSubmitted(parsed)
       setJobId(res.job_id)
     } catch (err) {
@@ -218,46 +185,36 @@ export default function TimetablePage() {
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_1fr]">
+      <div className="flex flex-col lg:flex-row gap-6 w-full h-full items-start">
         {/* Constraint input */}
-        <Card className="flex h-fit flex-col p-4">
-          <div className="mb-3 flex items-center justify-between">
+        <Card className="flex flex-col p-4 w-full lg:w-[45%] xl:w-[40%] shrink-0 h-[calc(100vh-12rem)] min-h-[600px] overflow-hidden">
+          <div className="mb-3 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <FileJson aria-hidden="true" className="h-4 w-4 text-primary" />
+              <Sparkles aria-hidden="true" className="h-4 w-4 text-primary" />
               Constraints
             </div>
+          </div>
+          
+          <div className="flex-1 min-h-0 flex flex-col">
+            <ConstraintBuilder payload={draft} onChange={setDraft} />
+          </div>
+          
+          <div className="shrink-0 pt-4 mt-auto border-t border-border/50">
+            {jsonError && <p className="mb-2 text-xs text-destructive">{jsonError}</p>}
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={loadSample}
-              className="gap-1.5 text-xs"
+              onClick={generate}
+              disabled={isProcessing}
+              aria-busy={isProcessing}
+              className="w-full gap-1.5"
             >
-              <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
-              Load sample
+              <Play aria-hidden="true" className="h-4 w-4" />
+              {isProcessing ? "Solving…" : "Generate timetable"}
             </Button>
           </div>
-          <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            spellCheck={false}
-            rows={20}
-            className="resize-none font-mono text-xs leading-relaxed"
-            aria-label="Timetable constraints JSON"
-          />
-          {jsonError && <p className="mt-2 text-xs text-destructive">{jsonError}</p>}
-          <Button
-            onClick={generate}
-            disabled={isProcessing}
-            aria-busy={isProcessing}
-            className="mt-3 gap-1.5"
-          >
-            <Play aria-hidden="true" className="h-4 w-4" />
-            {isProcessing ? "Solving…" : "Generate timetable"}
-          </Button>
         </Card>
 
         {/* Output */}
-        <Card className="min-h-[420px] p-4">
+        <Card className="p-4 flex-1 min-w-0 overflow-x-auto flex flex-col h-[calc(100vh-12rem)] min-h-[600px]">
           <AnimatePresence mode="wait">
             {submitError ? (
               <motion.div
@@ -297,8 +254,7 @@ export default function TimetablePage() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <ProcessingSkeletonMatrix />
-                <SolverProgress payload={submitted} done={false} />
+                <AlgorithmExplainer />
               </motion.div>
             ) : isInfeasible ? (
               <motion.div
@@ -330,6 +286,7 @@ export default function TimetablePage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={spring.gentle}
+                className="flex flex-col flex-1 min-w-0 w-full"
               >
                 <TimetableGrid result={result} payload={submitted} />
               </motion.div>

@@ -11,6 +11,9 @@ import { PageHeading } from "@/components/states"
 import { api, ApiError } from "@/lib/api"
 import { spring } from "@/lib/motion"
 
+import { DocumentUpload } from "@/components/documents/document-upload"
+import { cn } from "@/lib/utils"
+
 const EXAMPLE_PROMPTS = [
   "What is the school's late-arrival policy?",
   "Summarize the admissions requirements",
@@ -23,14 +26,17 @@ function makeId() {
 }
 
 export default function KnowledgePage() {
+  const [mode, setMode] = useState<"chat" | "batch">("chat")
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
-  }, [messages, loading])
+    if (mode === "chat") {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
+    }
+  }, [messages, loading, mode])
 
   async function send(raw: string, retryOf?: string) {
     const trimmed = raw.trim()
@@ -59,12 +65,36 @@ export default function KnowledgePage() {
 
   return (
     <div className="mx-auto flex h-full max-w-4xl flex-col">
-      <PageHeading
-        icon={<MessagesSquare className="h-5 w-5" />}
-        title={<span className="text-gradient-brand">Knowledge Base</span>}
-        description="Ask questions in plain English — answers are grounded in your indexed school documents with source citations."
-        actions={<KnowledgeUploadControl />}
-      />
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <PageHeading
+          icon={<MessagesSquare className="h-5 w-5" />}
+          title={<span className="text-gradient-brand">Knowledge Base</span>}
+          description="Ask questions in plain English, or bulk ingest documents directly into the vector database."
+          actions={<KnowledgeUploadControl />}
+        />
+        <div className="flex w-fit items-center rounded-xl bg-secondary p-1 shrink-0">
+          <button 
+            onClick={() => setMode("chat")} 
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium rounded-lg transition-colors", 
+              mode === "chat" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            RAG Chat
+          </button>
+          <button 
+            onClick={() => setMode("batch")} 
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium rounded-lg transition-colors", 
+              mode === "batch" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Batch Ingest
+          </button>
+        </div>
+      </div>
+
+      {mode === "chat" ? (
 
       <div className="flex h-[calc(100vh-15rem)] min-h-[420px] flex-col overflow-hidden rounded-xl glass-surface shadow-soft">
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-6 sm:px-6">
@@ -112,6 +142,9 @@ export default function KnowledgePage() {
 
         <ChatComposer value={input} onChange={setInput} onSend={() => send(input)} loading={loading} />
       </div>
+      ) : (
+        <DocumentUpload />
+      )}
     </div>
   )
 }

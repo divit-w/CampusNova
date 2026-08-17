@@ -4,52 +4,18 @@ import { useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertTriangle, CheckCircle2, File as FileIcon, ScanLine, UploadCloud, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { ErrorState } from "@/components/states"
 import { api } from "@/lib/api"
-import type { ProcessSheetResponse, SyncBulkResponse, ExtractedAttendanceRecord } from "@/lib/types"
+import type { BulkAttendanceResponse } from "@/lib/types"
 import { spring } from "@/lib/motion"
 import { cn } from "@/lib/utils"
-
-function SimpleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={onChange}
-      className={cn(
-        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        checked ? "bg-primary" : "bg-muted"
-      )}
-    >
-      <span
-        className={cn(
-          "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform",
-          checked ? "translate-x-4" : "translate-x-0"
-        )}
-      />
-    </button>
-  )
-}
+import { BulkReviewTable } from "./bulk-review-table"
 
 const VALID_EXT = [".jpg", ".jpeg", ".png", ".pdf"]
 /** 5 MB client-side guard — keeps requests well under the 10 MB backend limit
  *  and provides an instant, friendly error before any network round-trip. */
 const MAX_FILE_BYTES = 5 * 1024 * 1024
-
-/**
- * Returns today's date in local timezone as YYYY-MM-DD.
- * Using Date.now() minus the UTC offset avoids the common off-by-one where
- * toISOString() returns the *previous* day for UTC+ timezones after midnight.
- */
-function todayIso() {
-  return new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 10)
-}
 
 function isValidFile(file: File) {
   const ext = `.${file.name.split(".").pop()?.toLowerCase()}`
@@ -63,18 +29,16 @@ function formatBytes(bytes: number) {
 }
 
 /**
- * Drag-and-drop bulk sheet upload → POST /attendance/process-sheet.
+ * Drag-and-drop bulk sheet upload → POST /attendance/process-bulk-register.
  * The backend runs Vision OCR (OpenRouter) on the uploaded photo/PDF and
- * upserts per-student present/absent rows for the given date.
+ * returns row-level validation data.
  */
 export function VisionUploadZone() {
-  const [date, setDate] = useState(todayIso)
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [syncing, setSyncing] = useState(false)
-  const [result, setResult] = useState<{ message: string } | null>(null)
-  const [extractedRecords, setExtractedRecords] = useState<ExtractedAttendanceRecord[] | null>(null)
+  const [result, setResult] = useState<BulkAttendanceResponse | null>(null)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -82,7 +46,7 @@ export function VisionUploadZone() {
   function pickFile(f: File | undefined | null) {
     if (!f) return
     setResult(null)
-    setExtractedRecords(null)
+    setSuccessMsg(null)
     setError(null)
     setValidationError(null)
     if (!isValidFile(f)) {
@@ -102,14 +66,10 @@ export function VisionUploadZone() {
     if (!file || loading) return
     setLoading(true)
     setError(null)
+    setSuccessMsg(null)
     try {
-      const res = await api.processAttendanceSheet(file, date)
-      if (res.records && res.records.length > 0) {
-        setExtractedRecords(res.records)
-      } else {
-        setResult({ message: "No records found to extract." })
-      }
-      setFile(null)
+      const res = await api.processBulkRegister(file)
+      setResult(res)
     } catch (err) {
       setError(err)
     } finally {
@@ -117,24 +77,32 @@ export function VisionUploadZone() {
     }
   }
 
-  async function sync() {
-    if (!extractedRecords || syncing) return
-    setSyncing(true)
-    setError(null)
-    try {
-      const res = await api.syncAttendanceRecords(date, extractedRecords)
-      setResult({ message: res.message })
-      setExtractedRecords(null)
-    } catch (err) {
-      setError(err)
-    } finally {
-      setSyncing(false)
-    }
+  function handleCancel() {
+    setResult(null)
+    setFile(null)
   }
 
-  function toggleStatus(id: string) {
-    setExtractedRecords((prev) => 
-      prev ? prev.map((r) => r.student_id === id ? { ...r, status: r.status === "present" ? "absent" : "present" } : r) : null
+  function handleSuccess() {
+    setResult(null)
+    setFile(null)
+    setSuccessMsg("Attendance records finalized successfully.")
+    setTimeout(() => setSuccessMsg(null), 5000)
+  }
+
+  if (result) {
+    return (
+      <Card className="flex flex-col p-5 lg:col-span-2">
+        <div className="mb-4 flex items-center gap-2.5">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+            <ScanLine className="h-[18px] w-[18px]" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold leading-tight">Review Attendance</p>
+            <p className="text-xs text-muted-foreground">Verify extracted rows before committing to the database</p>
+          </div>
+        </div>
+        <BulkReviewTable data={result} onCancel={handleCancel} onSuccess={handleSuccess} />
+      </Card>
     )
   }
 
@@ -148,11 +116,6 @@ export function VisionUploadZone() {
           <p className="text-sm font-semibold leading-tight">Vision OCR bulk sheet</p>
           <p className="text-xs text-muted-foreground">Photograph a paper register — we&apos;ll extract it</p>
         </div>
-      </div>
-
-      <div className="mt-4 space-y-1.5">
-        <Label htmlFor="sheet-date">Date</Label>
-        <Input id="sheet-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="max-w-[200px]" />
       </div>
 
       <div
@@ -199,7 +162,7 @@ export function VisionUploadZone() {
               </div>
               <button
                 type="button"
-                onClick={() => setFile(null)}
+                onClick={(e) => { e.stopPropagation(); setFile(null); }}
                 aria-label="Remove file"
                 className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
               >
@@ -218,51 +181,13 @@ export function VisionUploadZone() {
         </AnimatePresence>
       </div>
 
-      <Button onClick={submit} disabled={!file || loading || !!extractedRecords} className="mt-4 gap-1.5">
+      <Button onClick={submit} disabled={!file || loading} className="mt-4 gap-1.5">
         <ScanLine className="h-4 w-4" />
         {loading ? "Extracting attendance…" : "Process sheet"}
       </Button>
 
       <AnimatePresence>
-        {extractedRecords && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-4 overflow-hidden"
-          >
-            <div className="rounded-xl border border-border bg-surface/40 backdrop-blur-2xl p-4">
-              <h4 className="mb-3 text-sm font-semibold text-foreground">Review Extracted Records</h4>
-              <div className="flex max-h-[250px] flex-col gap-2 overflow-y-auto pr-2">
-                {extractedRecords.map((r) => (
-                  <div key={r.student_id} className="flex items-center justify-between rounded-lg border border-border/50 bg-background/50 p-2.5">
-                    <div>
-                      <p className="text-sm font-medium">{r.name || r.student_id}</p>
-                      <p className="text-xs text-muted-foreground">{r.student_id}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={cn("text-xs font-medium", r.status === "present" ? "text-success" : "text-muted-foreground")}>
-                        {r.status === "present" ? "Present" : "Absent"}
-                      </span>
-                      <SimpleSwitch
-                        checked={r.status === "present"}
-                        onChange={() => toggleStatus(r.student_id)}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Button onClick={sync} disabled={syncing} className="mt-4 w-full gap-1.5">
-                <CheckCircle2 className="h-4 w-4" />
-                {syncing ? "Syncing..." : "Confirm & Sync Attendance"}
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {result && (
+        {successMsg && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -271,7 +196,7 @@ export function VisionUploadZone() {
             className="mt-4 flex items-center gap-2.5 rounded-xl border border-success/20 bg-success/[0.06] px-4 py-3"
           >
             <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
-            <p className="text-pretty text-sm leading-snug text-foreground">{result.message}</p>
+            <p className="text-pretty text-sm leading-snug text-foreground">{successMsg}</p>
           </motion.div>
         )}
       </AnimatePresence>
