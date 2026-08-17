@@ -22,9 +22,7 @@
 
 <br />
 
-<a href="https://campus-nova-sand.vercel.app/login" target="_blank">
-  <h2>Try It Live &rarr;</h2>
-</a>
+<h2><a href="https://campus-nova-sand.vercel.app/login"><u>Try It Live &rarr;</u></a></h2>
 
 **[Backend API Service (FastAPI & Render)](https://campusnova-api.onrender.com)** &nbsp;|&nbsp; **[Interactive API Documentation (Swagger UI)](https://campusnova-api.onrender.com/docs)**
 
@@ -36,9 +34,9 @@
 * [Platform Dashboard](#platform-dashboard)
 * [Comprehensive Hackathon & Engineering Journey](#comprehensive-hackathon--engineering-journey)
 * [Deep Architecture Analysis](#deep-architecture-analysis)
-* [Advanced Architectural Deep-Dive & Mathematical Models](#advanced-architectural-deep-dive--mathematical-models)
-* [Exhaustive API Endpoints Specification Matrix](#exhaustive-api-endpoints-specification-matrix)
+* [Advanced Mathematical Models](#advanced-mathematical-models)
 * [Feature Showcase](#feature-showcase)
+* [Exhaustive API Endpoints Specification Matrix](#exhaustive-api-endpoints-specification-matrix)
 * [Performance, Security, and Edge-Case Mitigations](#performance-security-and-edge-case-mitigations)
 * [Repository Structure](#repository-structure)
 * [Setup & Installation](#setup--installation)
@@ -143,26 +141,86 @@ flowchart TB
 
 ---
 
-## Advanced Architectural Deep-Dive & Mathematical Models
+## Advanced Mathematical Models
 
-### Constraint-Solving Matrix
-The backbone of CampusNova's scheduling capability is a mathematically rigorous constraint-solving matrix. We modeled the institutional timetable as a complex optimization problem.
+At the core of CampusNova is a deterministic solver engine that computes resource allocation without relying on unpredictable AI outputs. We keep the math transparent and strictly code-based.
 
-*   **Hard Constraints:** Absolute rules that cannot be violated under any circumstance. Examples include ensuring a single teacher is never assigned to two distinct classes during the same time block, and guaranteeing room capacity strictly exceeds enrolled student count.
-*   **Soft Constraints:** Preferences that the algorithm attempts to optimize but can override if a valid solution requires it. Examples include minimizing gaps in a teacher's daily schedule or preferring specific room types for particular subjects.
-*   **Optimization Strategy:** The heuristic solver explores the matrix domain space, applying constraint propagation to prune invalid branches instantly, rapidly converging on a conflict-free global timetable.
+### 1. Haversine Geofencing Engine
+Faculty attendance relies on precise spatial boundaries to prevent spoofing. The distance $d$ between the faculty's reported GPS coordinates $(\phi_2, \lambda_2)$ and the institution's predefined centroid $(\phi_1, \lambda_1)$ is computed utilizing the Haversine formula:
 
-### Substitute Resolver Logic
-When an instructor is marked absent, the resolver queries the active daily matrix. It computes candidate availability based on real-time schedule gaps, ranks them by subject matter expertise (matching taxonomy tags between the absent teacher and the candidate pool), and evaluates hierarchical roles to propose the most logical, least disruptive substitute assignment.
+$$ d = 2r \arcsin\left(\sqrt{\sin^2\left(\frac{\phi_2 - \phi_1}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\lambda_2 - \lambda_1}{2}\right)}\right) $$
 
-### Retrieval-Augmented Generation (RAG) Pipeline
+*   $r$: Earth's radius (approximately 6371 km).
+*   $\phi, \lambda$: Latitude and longitude mapped in radians.
+*   **Validation:** If $d \le \text{Threshold}$, the clock-in is authorized; otherwise, it is flagged as a geospatial anomaly and requires administrative override.
+
+### 2. Timetable Optimization (Constraint Programming)
+Instead of manual permutation, we utilize a CP-SAT solver to maximize institutional efficiency. Let $X_{t,c,r}$ be a boolean decision variable that equals $1$ if teacher $t$ is assigned to class $c$ in room $r$.
+
+**Objective Function (Maximize Subject Preference & Minimize Gaps):**
+$$ \text{Maximize} \sum_{t \in T} \sum_{c \in C} \sum_{r \in R} (P_{t,c} \cdot X_{t,c,r}) - \text{IdlePenalty}_t $$
+
+*   **Hard Constraint (No Overlaps):** $\sum_{c} \sum_{r} X_{t,c,r} \le 1$ for any given time block. Ensures a faculty member is never double-booked.
+*   **Hard Constraint (Capacity):** $\text{Enrolled}_c \le \text{Capacity}_r$. Guarantees the assigned room can physically accommodate the students.
+
+### 3. Substitute Ranking Algorithm
+When an instructor is marked absent, the resolver queries the active daily matrix and computes a normalized compatibility score $S_c$ for every available candidate $c$:
+
+$$ S_c = (w_1 \times \text{TaxonomyMatch}) + (w_2 \times \text{Proximity}) - (w_3 \times \text{FatiguePenalty}) $$
+
+*   $w_1, w_2, w_3$: Tunable institutional weights prioritizing subject expertise over proximity.
+*   The candidate with the highest global $S_c$ score is instantly proposed on the dashboard for minimal-click assignment.
+
+### 4. Retrieval-Augmented Generation (RAG) Pipeline
 The institutional knowledge base operates on a localized RAG pipeline.
 *   **Embedding Strategy:** Documents and policy guidelines are ingested, chunked, and vectorized using `all-MiniLM-L6-v2`.
 *   **Vector Search Mechanics:** High-dimensional vectors are stored in ChromaDB. When an administrator queries the AI Command interface, the system performs a cosine similarity search to retrieve the most semantically relevant text chunks.
 *   **Synthesis:** The retrieved context is passed alongside the user's query to the LLM, effectively grounding the generative response in verified institutional policy and eliminating hallucinations.
 
-### Haversine Geofencing
-Faculty attendance utilizes the Haversine formula to compute the great-circle distance between the user's reported GPS coordinates and the institution's predefined geographical centroid. Distances exceeding the allowed radius instantly flag the clock-in attempt as an anomaly.
+---
+
+## Feature Showcase
+
+### 1. Centralized Command Dashboard
+A modular interface designed strictly for minimal clicks. Operations such as substitute teacher assignment, attendance tracking, and schedule conflict resolution are surfaced proactively. 
+
+![Dashboard Overview](screenshots/dashboard.png)
+
+### 2. Timetable Generation & Management
+Automated conflict resolution allows administrators to generate semester timetables in seconds. Our heuristic backend crunches the math to output an optimal schedule.
+
+![Timetable Generator](screenshots/timetable.png)
+
+### 3. Faculty Attendance & Geofencing
+Secure, location-aware faculty check-ins using the Haversine distance formula, complete with spoofing detection and real-time dashboard state synchronization.
+
+![Attendance Tracking](screenshots/attendance.png)
+
+### 4. AI Document Processing
+Physical leave requests or administrative forms uploaded to the system are processed asynchronously. Optical character recognition extracts the critical metadata and routes it to the appropriate administrative queue.
+
+![Document Processing](screenshots/documents.png)
+![Document Library](screenshots/doc%20library.png)
+
+### 5. Institutional Knowledge Base
+A centralized repository powered by ChromaDB for querying institutional policies, procedures, and historical data instantly.
+
+![Knowledge Base](screenshots/knowledge.png)
+
+### 6. Transport & Fleet Operations
+Live tracking and predictive metrics for institutional transport fleets, providing high-level oversight of campus logistics.
+
+![Transport Management](screenshots/transport.png)
+
+### 7. AI Command Interface
+Natural language processing interface allowing administrators to query system data conversationally, grounded perfectly by our RAG vector embeddings.
+
+![AI Command Center](screenshots/ai%20command.png)
+
+### 8. User Identity Management
+Hierarchical, role-based access control interfaces allowing granular permission settings.
+
+![User Management](screenshots/user%20management.png)
 
 ---
 
@@ -184,51 +242,6 @@ The backend exposes a highly structured, RESTful API. Every endpoint is shielded
 | **GET** | `/api/v1/documents/queue` | Admin | Fetches pending administrative documents requiring manual approval. |
 | **POST** | `/api/v1/knowledge/query` | Authenticated | Executes a semantic vector search against ChromaDB for policy retrieval. |
 | **GET** | `/api/v1/transport/fleet-status` | Admin | Aggregates live geographical data for institutional transport fleets. |
-
----
-
-## Feature Showcase
-
-### 1. Centralized Command Dashboard
-A modular interface designed strictly for minimal clicks. Operations such as substitute teacher assignment, attendance tracking, and schedule conflict resolution are surfaced proactively. 
-
-![Dashboard Overview](screenshots/dashboard.png)
-
-### 2. Timetable Generation & Management
-Automated conflict resolution allows administrators to generate semester timetables in seconds.
-
-![Timetable Generator](screenshots/timetable.png)
-
-### 3. Faculty Attendance & Geofencing
-Secure, location-aware faculty check-ins complete with spoofing detection and real-time dashboard updates.
-
-![Attendance Tracking](screenshots/attendance.png)
-
-### 4. AI Document Processing
-Physical leave requests or administrative forms uploaded to the system are processed asynchronously. Optical character recognition extracts the critical metadata and routes it to the appropriate administrative queue.
-
-![Document Processing](screenshots/documents.png)
-![Document Library](screenshots/doc%20library.png)
-
-### 5. Institutional Knowledge Base
-A centralized repository powered by ChromaDB for querying institutional policies, procedures, and historical data.
-
-![Knowledge Base](screenshots/knowledge.png)
-
-### 6. Transport & Fleet Operations
-Live tracking and predictive metrics for institutional transport fleets.
-
-![Transport Management](screenshots/transport.png)
-
-### 7. AI Command Interface
-Natural language processing interface allowing administrators to query system data conversationally.
-
-![AI Command Center](screenshots/ai%20command.png)
-
-### 8. User Identity Management
-Hierarchical, role-based access control interfaces.
-
-![User Management](screenshots/user%20management.png)
 
 ---
 
@@ -326,5 +339,5 @@ While the current architecture delivers a highly resilient, production-ready Min
 <br/>
 
 <div align="center">
-  <p>Made with Care by <b>Team Haigure</b></p>
+  <p>Made with ❤️ by <b>Team Haigure</b></p>
 </div>
