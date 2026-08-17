@@ -14,8 +14,8 @@ function todayIso() {
  * record today — the closest honest proxy for "on leave / unaccounted"
  * since the backend does not track a dedicated leave status.
  */
-export function useAttendanceSummary(enabled: boolean) {
-  const date = todayIso()
+export function useAttendanceSummary(enabled: boolean, overrideDate?: string) {
+  const date = overrideDate || todayIso()
 
   const { data, error, isLoading, mutate } = useSWR(
     enabled ? ["attendance-kpis", date] : null,
@@ -23,12 +23,14 @@ export function useAttendanceSummary(enabled: boolean) {
       const [summary, roster] = await Promise.all([api.attendanceSummary(date), api.roster(100)])
       const present = summary.records.filter((r) => r.present > 0).length
       const absent = summary.records.filter((r) => r.absent > 0 && r.present === 0).length
+      const excused = summary.records.filter((r) => (r.excused || 0) > 0 || (r.leave || 0) > 0).length
       const rosterTotal = roster.length
-      const unmarked = Math.max(rosterTotal - (present + absent), 0)
+      const unmarked = Math.max(rosterTotal - (present + absent + excused), 0)
       return {
         date: summary.date,
         present,
         absent,
+        excused,
         unmarked,
         rosterTotal,
         rosterCapped: rosterTotal === 100,

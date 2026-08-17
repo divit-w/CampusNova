@@ -4,6 +4,8 @@ import type {
   ClassResponse,
   ClockInResponse,
   DocumentExtractResponse,
+  BulkAttendanceResponse,
+  FinalizeBulkAttendanceRequest,
   GenerateJobAck,
   KnowledgeUploadResponse,
   ProcessSheetResponse,
@@ -101,7 +103,7 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   try {
     res = await fetch(`${API_V1}${path}`, { method, headers, body: payload, signal })
   } catch (err) {
-    if ((err as Error)?.name === "AbortError") throw err
+    if ((err as Error)?.name === "AbortError") throw new ApiError(504, "Request timed out. The server took too long to respond.")
     // network / CORS / backend unreachable
     throw new ApiError(0, "Cannot reach the CampusNova backend. Check that the API is running and NEXT_PUBLIC_API_URL is correct.")
   }
@@ -188,8 +190,24 @@ export const api = {
     if (date) fd.append("date", date)
     return request<ProcessSheetResponse>("/attendance/process-sheet", { method: "POST", formData: fd })
   },
+<<<<<<< Updated upstream
   async syncAttendanceRecords(date: string, records: ExtractedAttendanceRecord[]): Promise<SyncBulkResponse> {
     return request<SyncBulkResponse>("/attendance/sync-bulk", { method: "POST", body: { date, records } })
+=======
+  async processBulkRegister(file: File): Promise<BulkAttendanceResponse> {
+    const fd = new FormData()
+    fd.append("file", file)
+    const controller = new AbortController()
+    const id = setTimeout(() => controller.abort(), 60000)
+    try {
+      return await request<BulkAttendanceResponse>("/attendance/process-bulk-register", { method: "POST", formData: fd, signal: controller.signal })
+    } finally {
+      clearTimeout(id)
+    }
+  },
+  async finalizeBulkRegister(payload: FinalizeBulkAttendanceRequest): Promise<{ status: string; message: string; batch_id: string }> {
+    return request<{ status: string; message: string; batch_id: string }>("/attendance/finalize-bulk", { method: "POST", body: payload })
+>>>>>>> Stashed changes
   },
   async facultyClockIn(latitude: number, longitude: number, file: File): Promise<ClockInResponse> {
     const fd = new FormData()
@@ -243,7 +261,16 @@ export const api = {
   async extractDocument(file: File): Promise<DocumentExtractResponse> {
     const fd = new FormData()
     fd.append("file", file)
-    return request<DocumentExtractResponse>("/documents/extract", { method: "POST", formData: fd })
+    const controller = new AbortController()
+    const id = setTimeout(() => controller.abort(), 30000)
+    try {
+      return await request<DocumentExtractResponse>("/documents/extract", { method: "POST", formData: fd, signal: controller.signal })
+    } finally {
+      clearTimeout(id)
+    }
+  },
+  async approveDocument(documentId: string, payload?: any): Promise<{ status: string; message: string }> {
+    return request<{ status: string; message: string }>(`/documents/${encodeURIComponent(documentId)}/approve`, { method: "POST", body: payload })
   },
 
   /* Admin user management (admin only) */
