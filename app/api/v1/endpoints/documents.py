@@ -52,7 +52,7 @@ async def _process_single_document(file: UploadFile) -> dict:
                         "strict": False
                     }
                 },
-                timeout=15.0,
+                timeout=60.0,
                 messages=[
                     {
                         "role": "user",
