@@ -15,7 +15,13 @@ async def teacher_my_classes(
     current_user: dict = Depends(require_roles(["teacher"])),
 ):
     """Returns all classes assigned to the authenticated teacher."""
-    teacher_id = current_user.get("id")
+    user_email = current_user.get("email")
+    teacher_doc = await mongo_db.teachers_collection.find_one({"email": user_email})
+    
+    if not teacher_doc:
+        raise HTTPException(status_code=404, detail="Teacher profile not found for this account.")
+        
+    teacher_id = teacher_doc.get("teacher_id")
     cursor = mongo_db.classes_collection.find(
         {"teacher_id": teacher_id}, {"_id": 0}
     )
@@ -29,13 +35,13 @@ async def student_my_schedule(
     current_user: dict = Depends(require_roles(["student"])),
 ):
     """Returns the class schedule matching the authenticated student's grade+section."""
-    student_id = current_user.get("id")
-
+    user_email = current_user.get("email")
     student_doc = await mongo_db.students_collection.find_one(
-        {"student_id": student_id}, {"_id": 0}
+        {"email": user_email}, {"_id": 0}
     )
+
     if not student_doc:
-        raise HTTPException(status_code=404, detail="Student profile not found")
+        raise HTTPException(status_code=404, detail="Student profile not found for this account.")
 
     grade = student_doc.get("grade")
     section = student_doc.get("section")
@@ -60,7 +66,13 @@ async def student_attendance_summary(
     Returns the authenticated student's all-time present/absent totals and
     attendance percentage, aggregated directly from student_attendance_collection.
     """
-    student_id = current_user.get("id")
+    user_email = current_user.get("email")
+    student_doc = await mongo_db.students_collection.find_one({"email": user_email})
+    
+    if not student_doc:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+        
+    student_id = student_doc.get("student_id")
 
     pipeline = [
         {"$match": {"student_id": student_id}},

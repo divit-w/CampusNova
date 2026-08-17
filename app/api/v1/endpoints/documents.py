@@ -320,7 +320,7 @@ from typing import Optional
 async def approve_document(
     document_id: str, 
     doc_data: Optional[UniversalDocumentSchema] = None,
-    current_user: dict = Depends(require_roles(["admin", "teacher"]))
+    current_user: dict = Depends(require_roles(["admin"]))
 ):
     """
     Final confirmation API call to seal the document in the operational registry.
