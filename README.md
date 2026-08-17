@@ -2,7 +2,7 @@
   
 <img src="./logo.png" alt="CampusNova Logo" width="150" />
 
-# CampusNova 🚀
+# CampusNova 
 The calm control center for your entire campus. Built for modern institutional operations, AI-assisted workflows, constraint-solved timetables, and live substitutes.
 
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js_14-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
@@ -15,7 +15,7 @@ The calm control center for your entire campus. Built for modern institutional o
 
 ---
 
-## 🌐 Live Production URLs
+## Live Production URLs
 
 * **Frontend Application:** [CampusNova Frontend](https://campus-nova-sand.vercel.app/login)
 * **Backend API Service:** [CampusNova Backend API](https://campusnova-api.onrender.com)
@@ -23,7 +23,7 @@ The calm control center for your entire campus. Built for modern institutional o
 
 ---
 
-## 🏛️ Core Philosophy
+## Core Philosophy
 
 At CampusNova, we believe that education administrators should spend their time focusing on student outcomes, educational quality, and institutional growth—not wrestling with combinatorial scheduling conflicts, logistical transport headaches, or the manual transcription of handwritten documents. 
 
@@ -37,7 +37,7 @@ We emphasize:
 
 ---
 
-## ⚙️ Core Engine and Math Models in Extreme Depth
+## Core Engine and Math Models in Extreme Depth
 
 The backbone of CampusNova consists of several deterministic engines designed to solve NP-Hard and computationally intense logistical problems. We abandoned traditional CRUD approaches here in favor of operations research heuristics and constraint satisfaction paradigms.
 
@@ -107,7 +107,7 @@ For unstructured handwritten documents (medical notes, leave applications):
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 CampusNova is constructed as a modern, decoupled monorepo, cleanly separating the React frontend from the Python API service.
 
@@ -158,7 +158,7 @@ CampusNova/
 
 ---
 
-## 🛠️ Design Decisions
+## Design Decisions
 
 We encountered numerous forks in the road during development. Here is the rationale behind our most critical architectural choices.
 
@@ -179,7 +179,7 @@ We encountered numerous forks in the road during development. Here is the ration
 
 ---
 
-## 🛤️ Engineering Journey
+## Engineering Journey
 
 Building CampusNova was an intense exercise in balancing rapid hackathon pacing with deep architectural resilience. 
 
@@ -199,7 +199,7 @@ We spent the final push refining the glassmorphism aesthetic. We recognized that
 
 ---
 
-## 💡 Lessons Learned
+## Lessons Learned
 
 1. **AI is Non-Deterministic; Systems must be Deterministic:**
    You cannot trust an LLM to output perfect JSON 100% of the time. We learned to wrap all Vision OCR and RAG outputs in aggressive retry loops and strict regex parsers. If the AI hallucinates outside the schema, the system catches it, cleans it, or silently retries.
@@ -215,7 +215,7 @@ We spent the final push refining the glassmorphism aesthetic. We recognized that
 
 ---
 
-## 📖 API Reference
+## API Reference
 
 Our robust FastAPI backend provides a comprehensive suite of endpoints. All endpoints are fully documented via the interactive Swagger UI (accessible at `/docs`).
 
@@ -247,7 +247,7 @@ Our robust FastAPI backend provides a comprehensive suite of endpoints. All endp
 
 ---
 
-## 🔐 Security & Validation
+## Security & Validation
 
 CampusNova treats security as a fundamental pillar, not an afterthought.
 
@@ -259,7 +259,7 @@ CampusNova treats security as a fundamental pillar, not an afterthought.
 
 ---
 
-## 📈 Scalability
+## Scalability
 
 CampusNova is engineered to scale with the institution.
 1. **Asynchronous I/O:** Built on ASGI (Uvicorn), FastAPI natively handles thousands of concurrent requests by non-blocking network I/O, ensuring the API never locks up while waiting for database queries.
@@ -269,7 +269,7 @@ CampusNova is engineered to scale with the institution.
 
 ---
 
-## 🚀 Local Setup & Deployment
+## Local Setup & Deployment
 
 Follow these instructions to run the CampusNova stack locally for evaluation.
 
@@ -315,7 +315,7 @@ npm run dev
 
 ---
 
-## ✨ Core Features & Interface Visuals
+## Core Features & Interface Visuals
 
 We built a stunning, glassmorphism-inspired UI designed for speed, clarity, and administrative efficiency.
 
@@ -381,7 +381,7 @@ Comprehensive RBAC (Role-Based Access Control) for students, teachers, and admin
 
 ---
 
-## 📬 Feedback & Support
+## Feedback & Support
 
 We would love to hear your thoughts on CampusNova! Please fill out our feedback form below:
 
@@ -391,7 +391,7 @@ We would love to hear your thoughts on CampusNova! Please fill out our feedback 
 
 ---
 
-## 🗂️ Deep Dive: File-by-File Architecture
+## Deep Dive: File-by-File Architecture
 
 To truly understand CampusNova, let's explore the critical files that make up our operating system:
 
@@ -422,7 +422,7 @@ The universal fetch wrapper for the React application. It automatically intercep
 
 ---
 
-## 🛠️ Deep Dive: Exhaustive API Parameter Reference
+## Deep Dive: Exhaustive API Parameter Reference
 
 For developers integrating with CampusNova, here is a granular breakdown of critical API payloads:
 
@@ -486,7 +486,7 @@ data: {"chunk": "without provost approval."}
 
 ---
 
-## 📚 Technical Glossary
+## Technical Glossary
 
 To aid new developers and contributors, here is a glossary of the domain-specific technical terminology utilized throughout the CampusNova architecture:
 
