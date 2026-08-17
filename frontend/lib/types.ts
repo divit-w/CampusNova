@@ -157,12 +157,19 @@ export interface FeedAlert {
 
 /* ── Attendance — app/api/v1/endpoints/attendance.py + admin_erp.py ──── */
 
-<<<<<<< Updated upstream
 export interface ExtractedAttendanceRecord {
   student_id: string
   name: string
   status: "present" | "absent" | "on_leave"
-=======
+}
+
+export interface ValidationResult {
+  passed: boolean
+  code: string
+  message: string
+  severity: "INFO" | "WARNING" | "POLICY_FLAG" | "CRITICAL"
+}
+
 export interface ProcessedAttendanceRow {
   row_id: string
   student_id?: string
@@ -191,7 +198,6 @@ export interface FinalizeBulkAttendanceRequest {
   date: string
   class_section: string
   records: ProcessedAttendanceRow[]
->>>>>>> Stashed changes
 }
 
 /** POST /attendance/process-sheet */
@@ -284,12 +290,6 @@ export interface ExtractedField {
   confidence: string
 }
 
-export interface ValidationResult {
-  passed: boolean
-  code: string
-  message: string
-  severity?: "INFO" | "WARNING" | "POLICY_FLAG" | "CRITICAL"
-}
 
 export interface ExtractedDocument {
   document_category: string
