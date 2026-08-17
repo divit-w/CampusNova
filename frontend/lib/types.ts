@@ -27,6 +27,12 @@ export interface TimetableTeacher {
   id: string
   name: string
   max_hours: number
+  // UX Fields for Advanced Timetable Engine (Ignored by current Python solver)
+  blocked_periods?: { day: number; period: number }[]
+  required_rooms?: string[]
+  morning_bias?: boolean
+  consecutive_free_periods?: boolean
+  avoid_fridays?: boolean
 }
 export interface TimetableRoom {
   id: string

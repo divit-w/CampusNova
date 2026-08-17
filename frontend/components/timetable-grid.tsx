@@ -119,7 +119,7 @@ export function TimetableGrid({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          {subjectsInView.map((sid) => {
+          {subjectsInView.filter(sid => sid !== "BLOCKED").map((sid) => {
             const c = getSubjectColor(sid)
             return (
               <span key={sid} className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -177,6 +177,25 @@ export function TimetableGrid({
                     <td key={d} className="p-1.5 align-top">
                       <div className="flex flex-col gap-1.5">
                         {entries.map(({ entry, index: realIndex }, i) => {
+                          if (entry.subject_id === "BLOCKED") {
+                            return (
+                              <motion.div
+                                key={`blocked-${d}-${p}-${i}`}
+                                initial={{ opacity: 0, scale: 0.96 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="w-full rounded-lg border border-muted-foreground/20 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(0,0,0,0.03)_10px,rgba(0,0,0,0.03)_20px)] dark:bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_20px)] px-2.5 py-3 text-center flex flex-col justify-center items-center h-full min-h-[64px]"
+                              >
+                                <p className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase opacity-70">
+                                  Blocked
+                                </p>
+                                {cohortFilter === "all" && (
+                                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                                    {lookups.cohort[entry.cohort_id] ?? entry.cohort_id}
+                                  </p>
+                                )}
+                              </motion.div>
+                            )
+                          }
                           const color = getSubjectColor(entry.subject_id)
                           return (
                             <motion.button
