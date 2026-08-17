@@ -6,48 +6,43 @@
 
 ### The calm control center for your entire campus. Built for modern institutional operations, AI-assisted workflows, constraint-solved timetables, and live substitute routing.
 
-[![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
-[![MongoDB Atlas](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
-[![ChromaDB](https://img.shields.io/badge/ChromaDB-VectorStore-orange?style=for-the-badge)](https://www.trychroma.com/)
-[![Vercel](https://img.shields.io/badge/Frontend-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/)
-[![Render](https://img.shields.io/badge/Backend-Render-purple?style=for-the-badge)](https://render.com/)
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://img.shields.io/badge/FastAPI-0.109-009688?style=for-the-badge&logo=fastapi" alt="FastAPI" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://img.shields.io/badge/MongoDB_Atlas-47A248?style=for-the-badge&logo=mongodb" alt="MongoDB Atlas" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://img.shields.io/badge/ChromaDB-VectorStore-orange?style=for-the-badge" alt="ChromaDB" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://img.shields.io/badge/Vercel-Deployment-black?style=for-the-badge&logo=vercel" alt="Vercel" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://img.shields.io/badge/Render-Backend-purple?style=for-the-badge" alt="Render" />
+</p>
 
----
+<br />
 
-### 🌐 Try It Live
+<a href="https://campus-nova-sand.vercel.app/login" target="_blank">
+  <h2>Try It Live &rarr;</h2>
+</a>
 
-**[Frontend Dashboard (Next.js & Vercel)](https://campus-nova-sand.vercel.app/login)** | **[Backend API Service (FastAPI & Render)](https://campusnova-api.onrender.com)** | **[Interactive API Documentation (Swagger UI)](https://campusnova-api.onrender.com/docs)**
+**[Backend API Service (FastAPI & Render)](https://campusnova-api.onrender.com)** &nbsp;|&nbsp; **[Interactive API Documentation (Swagger UI)](https://campusnova-api.onrender.com/docs)**
 
 </div>
 
 ---
 
 ## Table of Contents
-* [Quick Highlights](#quick-highlights)
 * [Platform Dashboard](#platform-dashboard)
-* [Project Philosophy & Innovation Challenge](#project-philosophy--innovation-challenge)
-* [Core Engines & Mathematical Models](#core-engines--mathematical-models)
-* [System Architecture & Data Flow](#system-architecture--data-flow)
-* [Repository Structure](#repository-structure)
+* [Comprehensive Hackathon & Engineering Journey](#comprehensive-hackathon--engineering-journey)
+* [Deep Architecture Analysis](#deep-architecture-analysis)
+* [Advanced Architectural Deep-Dive & Mathematical Models](#advanced-architectural-deep-dive--mathematical-models)
+* [Exhaustive API Endpoints Specification Matrix](#exhaustive-api-endpoints-specification-matrix)
 * [Feature Showcase](#feature-showcase)
-* [Design Decisions](#design-decisions)
-* [Hackathon Engineering Journey](#hackathon-engineering-journey)
-* [Lessons Learned & Challenges](#lessons-learned--challenges)
-* [API Reference](#api-reference)
-* [Security & Reliability](#security--reliability)
+* [Performance, Security, and Edge-Case Mitigations](#performance-security-and-edge-case-mitigations)
+* [Repository Structure](#repository-structure)
 * [Setup & Installation](#setup--installation)
-* [Future Roadmap](#future-roadmap)
-
----
-
-## Quick Highlights
-
-*   **Deterministic Optimization Engine:** Keeps timetable and substitute routing logic strictly mathematical to ensure deterministic, conflict-free scheduling without AI hallucination risks.
-*   **Minimal-Click Admin Dashboard:** A centralized command center featuring proactive alerts for operational bottlenecks rather than forcing administrators to hunt for data.
-*   **Asynchronous AI Document Processing:** Automated extraction and validation of physical forms, leave requests, and administrative records using Optical Character Recognition (OCR) and Natural Language Processing.
-*   **Real-Time State Synchronization:** Robust reactive state management ensures UI components remain perfectly synchronized across the dashboard when live substitutions or timetable shifts occur via Server-Sent Events (SSE).
-*   **Geofence & Spoof Mitigation:** Secure IP logging and geographical spoofing flags on faculty clock-ins guarantee audit trail integrity.
+* [Future Roadmap & Enterprise Scalability](#future-roadmap--enterprise-scalability)
 
 ---
 
@@ -57,90 +52,138 @@
 
 ---
 
-## Project Philosophy & Innovation Challenge
+## Comprehensive Hackathon & Engineering Journey
 
-CampusNova was engineered specifically to tackle the **Future-Ready Ops Innovation Challenge**. School administration currently remains heavily reliant on manual data entry, physical document storage, and siloed scheduling systems, leading to extreme institutional inefficiencies. 
+### Genesis of CampusNova
+CampusNova was engineered specifically to tackle the **Future-Ready Ops Innovation Challenge**. Extensive preliminary research into institutional workflows revealed extreme inefficiencies stemming from a reliance on manual data entry, physical document storage, and siloed scheduling systems. The core bottlenecks identified included:
+*   **Timetabling Clashes:** Manually resolving double-booked faculty and room overlaps required hundreds of administrative hours per semester.
+*   **Delayed Substitute Tracking:** Sudden faculty absences led to chaotic, reactionary reassignments, often resulting in unsupervised classrooms.
+*   **Attendance Friction:** Legacy attendance ledgers were prone to human error, proxy attendance (spoofing), and delayed reporting to stakeholders.
 
-Our solution is built to be evaluated on three core pillars:
-1.  **Innovation & Impact:** We creatively approached traditional workflows by replacing multiple legacy applications with a single, centralized data flow. The platform solves real-world bottlenecks in education and institutional productivity.
-2.  **Technical Execution:** We prioritized high code quality, modular architecture, and scalable logic. The system leverages modern state management, containerized deployment, and clean backend API integrations.
-3.  **UI / UX Design:** We delivered a seamless, accessible, and highly responsive user experience. The application goes beyond functional correctness—it feels intuitive, calm, and predictive for end-users.
+### Iterative Development and Architectural Pivots
+Our engineering journey was defined by rapid iteration and crucial architectural pivots necessary to build a truly production-grade system within the hackathon timeframe. 
 
----
+Initially, we explored utilizing Large Language Models (LLMs) to dynamically generate timetables by feeding schedule matrices directly into the prompt context. However, rigorous testing quickly exposed severe hallucination risks—the LLM would occasionally assign teachers to multiple rooms simultaneously or violate mandatory credit-hour constraints. 
 
-## Core Engines & Mathematical Models
-
-At the core of CampusNova is a deterministic solver engine that computes resource allocation without relying on non-deterministic LLMs.
-
-### Timetable Optimization Engine
-Rather than relying on manual drag-and-drop interfaces, our heuristic algorithms compute conflict-free timetables by balancing teacher availability, room capacity, and subject requirements. The solver utilizes constraint propagation to ensure that no single faculty member is double-booked and that mandatory credit hours are fulfilled.
-
-### Substitute Routing & Resolution
-When an instructor is marked absent, the optimization algorithms instantly query the current day's matrix, calculate availability, and rank substitute candidates based on subject matter expertise, hierarchical roles, and schedule gaps.
+To ensure absolute system integrity, we pivoted. We decoupled the architecture, implementing a deterministic Constraint Programming model (utilizing heuristic algorithms and CP-SAT logic) for all critical scheduling operations. The LLM integration was subsequently restricted to tasks it inherently excels at: parsing unstructured data (Optical Character Recognition on leave forms) and semantic retrieval (Retrieval-Augmented Generation for institutional policy queries). This pivot transformed CampusNova from an experimental concept into a mathematically sound, explainable, and highly reliable enterprise platform.
 
 ---
 
-## System Architecture & Data Flow
+## Deep Architecture Analysis
+
+Our system isolates state mutation, machine learning inference, and asynchronous job queues into discrete functional blocks. This guarantees that complex computational operations do not block the primary HTTP event loop.
 
 ```mermaid
 flowchart TB
-    classDef frontend fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px,color:#01579b;
-    classDef backend fill:#e8f5e9,stroke:#4caf50,stroke-width:2px,color:#1b5e20;
-    classDef intelligence fill:#fff3e0,stroke:#ff9800,stroke-width:2px,color:#e65100;
-    classDef database fill:#efebe9,stroke:#795548,stroke-width:2px,color:#3e2723;
+    classDef client fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px,color:#01579b;
+    classDef gateway fill:#e8f5e9,stroke:#4caf50,stroke-width:2px,color:#1b5e20;
+    classDef core fill:#fff3e0,stroke:#ff9800,stroke-width:2px,color:#e65100;
+    classDef data fill:#efebe9,stroke:#795548,stroke-width:2px,color:#3e2723;
+    classDef ml fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#4a148c;
 
-    subgraph ClientSide ["Frontend Client (Next.js App Router)"]
-        UI["Dashboard & Command Center"]:::frontend
-        State["Reactive State Management"]:::frontend
+    %% Client Layer
+    subgraph Frontend ["Client Presentation Layer (Next.js 14)"]
+        UI["React Dashboard UI"]:::client
+        State["Zustand / Reactive State"]:::client
+        SSE_Client["SSE Event Listener"]:::client
     end
 
-    subgraph APIBackend ["Backend Engine (FastAPI)"]
-        Routes["API Routers & Validation"]:::backend
-        Security["RBAC & IDOR Mitigation"]:::backend
+    %% Gateway & Security Layer
+    subgraph API ["FastAPI Gateway & Security"]
+        Router["API Routing & Pydantic Validation"]:::gateway
+        Auth["JWT & RBAC Gatekeeper"]:::gateway
+        Limiter["IP Rate Limiting"]:::gateway
     end
 
-    subgraph IntelLayer ["Core Intelligence & Services"]
-        Scheduling["Timetable Optimization Engine"]:::intelligence
-        OCR["AI Document Processing"]:::intelligence
-        Alerts["SSE Proactive Alert Stream"]:::intelligence
+    %% Core Business Logic
+    subgraph Services ["Core Orchestration Services"]
+        TT_Engine["Heuristic Timetable Solver"]:::core
+        Sub_Engine["Substitute Matrix Resolver"]:::core
+        Geo_Engine["Haversine Geofencing Logic"]:::core
+        Alert_Manager["Async Alert Publisher"]:::core
     end
 
-    subgraph CloudStorage ["Data Persistence"]
-        MDB[("MongoDB Atlas")]:::database
-        Vector[("ChromaDB / Knowledge Base")]:::database
+    %% ML & Processing
+    subgraph Processing ["AI & Document Pipeline"]
+        OCR["Optical Character Recognition"]:::ml
+        NLP["Information Extraction (LLM)"]:::ml
+        Embeddings["Vector Embedding Generator"]:::ml
     end
 
-    UI --> State
-    State -->|RESTful Operations| Routes
-    State -->|Live Feed| Alerts
-    Routes --> Security
-    Security --> Scheduling
-    Security --> OCR
-    Scheduling --> MDB
-    OCR --> Vector
+    %% Persistence Layer
+    subgraph Storage ["Distributed Persistence"]
+        MongoDB[("MongoDB Atlas (Transactional)")]:::data
+        ChromaDB[("ChromaDB (Vector Knowledge)")]:::data
+    end
+
+    %% Flow Dynamics
+    UI -->|Mutations| State
+    State -->|REST Payload| Limiter
+    Limiter --> Auth
+    Auth --> Router
+
+    Router -->|Schedule Compute| TT_Engine
+    Router -->|Conflict Request| Sub_Engine
+    Router -->|Clock-In Coordinates| Geo_Engine
+    Router -->|Document Upload| OCR
+
+    TT_Engine --> MongoDB
+    Sub_Engine --> MongoDB
+    Geo_Engine -->|State Change| Alert_Manager
+    Geo_Engine --> MongoDB
+
+    OCR --> NLP
+    NLP --> Embeddings
+    Embeddings --> ChromaDB
+    NLP -->|Metadata Sync| MongoDB
+
+    Alert_Manager -.->|Push Notifications| SSE_Client
+    SSE_Client --> UI
 ```
 
 ---
 
-## Repository Structure
+## Advanced Architectural Deep-Dive & Mathematical Models
 
-Our codebase is organized into a scalable, professional enterprise tier system.
+### Constraint-Solving Matrix
+The backbone of CampusNova's scheduling capability is a mathematically rigorous constraint-solving matrix. We modeled the institutional timetable as a complex optimization problem.
 
-```text
-CampusNova/
-├── backend/
-│   ├── app/                # Core FastAPI application (routing, models, services)
-│   ├── tests/              # Pytest suites ensuring endpoint reliability
-│   ├── requirements.txt    # Python dependencies
-│   └── Dockerfile          # Containerization for consistent environments
-├── frontend/
-│   ├── app/                # Next.js 14 App Router (pages and layouts)
-│   ├── components/         # Reusable React UI widgets
-│   └── lib/                # API clients, state management, and utilities
-├── docs/                   # Architecture diagrams and technical specifications
-├── scripts/                # Database seeding and automation scripts
-└── docker-compose.yml      # Local development container orchestration
-```
+*   **Hard Constraints:** Absolute rules that cannot be violated under any circumstance. Examples include ensuring a single teacher is never assigned to two distinct classes during the same time block, and guaranteeing room capacity strictly exceeds enrolled student count.
+*   **Soft Constraints:** Preferences that the algorithm attempts to optimize but can override if a valid solution requires it. Examples include minimizing gaps in a teacher's daily schedule or preferring specific room types for particular subjects.
+*   **Optimization Strategy:** The heuristic solver explores the matrix domain space, applying constraint propagation to prune invalid branches instantly, rapidly converging on a conflict-free global timetable.
+
+### Substitute Resolver Logic
+When an instructor is marked absent, the resolver queries the active daily matrix. It computes candidate availability based on real-time schedule gaps, ranks them by subject matter expertise (matching taxonomy tags between the absent teacher and the candidate pool), and evaluates hierarchical roles to propose the most logical, least disruptive substitute assignment.
+
+### Retrieval-Augmented Generation (RAG) Pipeline
+The institutional knowledge base operates on a localized RAG pipeline.
+*   **Embedding Strategy:** Documents and policy guidelines are ingested, chunked, and vectorized using `all-MiniLM-L6-v2`.
+*   **Vector Search Mechanics:** High-dimensional vectors are stored in ChromaDB. When an administrator queries the AI Command interface, the system performs a cosine similarity search to retrieve the most semantically relevant text chunks.
+*   **Synthesis:** The retrieved context is passed alongside the user's query to the LLM, effectively grounding the generative response in verified institutional policy and eliminating hallucinations.
+
+### Haversine Geofencing
+Faculty attendance utilizes the Haversine formula to compute the great-circle distance between the user's reported GPS coordinates and the institution's predefined geographical centroid. Distances exceeding the allowed radius instantly flag the clock-in attempt as an anomaly.
+
+---
+
+## Exhaustive API Endpoints Specification Matrix
+
+The backend exposes a highly structured, RESTful API. Every endpoint is shielded by strict Pydantic validation schemas. 
+
+| HTTP Method | Endpoint Path | Access Role (RBAC) | Brief Description |
+|---|---|---|---|
+| **POST** | `/api/v1/auth/login` | Public | Authenticates credentials and issues cryptographically signed JWT access tokens. |
+| **POST** | `/api/v1/auth/register` | Admin | Provisions new user accounts with designated role assignments. |
+| **GET** | `/api/v1/admin/erp/summary` | Admin | Aggregates high-level metrics for the primary dashboard operations. |
+| **GET** | `/api/v1/portals/teacher/my-classes` | Faculty | Retrieves the daily schedule specific to the authenticated instructor. |
+| **GET** | `/api/v1/portals/student/my-schedule` | Student | Retrieves the conflict-free timetable tailored to the student's enrollments. |
+| **POST** | `/api/v1/attendance/clock-in` | Faculty | Validates incoming GPS coordinates via Haversine logic to record attendance. |
+| **POST** | `/api/v1/attendance/bulk-sync` | Admin | Synchronizes offline or bulk attendance ledgers with the primary database. |
+| **POST** | `/api/v1/resources/resolve-conflict` | Admin | Triggers the heuristic algorithm to compute optimal substitute faculty routing. |
+| **POST** | `/api/v1/documents/upload` | Authenticated | Ingests physical forms into the asynchronous OCR processing pipeline. |
+| **GET** | `/api/v1/documents/queue` | Admin | Fetches pending administrative documents requiring manual approval. |
+| **POST** | `/api/v1/knowledge/query` | Authenticated | Executes a semantic vector search against ChromaDB for policy retrieval. |
+| **GET** | `/api/v1/transport/fleet-status` | Admin | Aggregates live geographical data for institutional transport fleets. |
 
 ---
 
@@ -189,52 +232,39 @@ Hierarchical, role-based access control interfaces.
 
 ---
 
-## Design Decisions
+## Performance, Security, and Edge-Case Mitigations
 
-*   **FastAPI Backend:** We selected FastAPI because of its native ASGI concurrency and fast Pydantic schema validation. This allows us to process multi-source telemetry, OCR tasks, and constraint-solving computations efficiently.
-*   **MongoDB Atlas:** We needed a flexible document model to handle varying schedule matrices, dynamic document metadata, and user profiles without the rigid overhead of relational migrations.
-*   **Separating Rules from AI:** We chose to keep core scheduling and substitute routing deterministic (written in Python) because letting an LLM calculate shift matrices introduces severe hallucination risks. The AI is restricted to NLP parsing, OCR extraction, and conversational querying.
-*   **Next.js App Router:** Utilized for its robust server-side rendering capabilities, optimizing initial payload delivery while maintaining dynamic client-side interactions via Framer Motion.
+### Resilience & Fault Tolerance
+*   **SSE Reconnection Logic:** The Server-Sent Events stream, providing real-time alerts to the dashboard, implements exponential backoff. If the client disconnects due to network instability, the interface transparently attempts to reconnect without requiring a page refresh.
+*   **Optimistic UI Updates:** For critical path operations (such as resolving a schedule conflict), the Next.js frontend updates local state immediately, masking network latency and delivering an instantaneous, frictionless user experience.
 
----
-
-## Hackathon Engineering Journey
-
-We originally designed the scheduling module to compile prompt details and let the LLM directly output the timetable. However, early tests during the hackathon demonstrated that prompt engineering alone could not prevent hallucinations in complex, multi-variable matrix operations. 
-
-We pivoted to a decoupled model: we wrote structured heuristic algorithms to calculate the schedules first, and only utilized AI for tasks it inherently excels at—such as extracting unstructured data from physical leave forms. This transition made the system explainable, deterministic, and exponentially faster.
+### Security Architecture
+*   **Insecure Direct Object Reference (IDOR) Prevention:** Standard web vulnerabilities are mitigated by ensuring all bulk operations and data queries strictly map to the identity embedded within the validated JWT token. Cross-tenant access is cryptographically blocked at the routing layer.
+*   **Strict Payload Parsing:** Every incoming API request passes through a Pydantic boundary. Payloads failing type-checks, missing required fields, or exceeding string length constraints are instantly rejected with HTTP 422 before ever reaching core business logic.
+*   **Rate Limiting Layers:** Utilizing IP-based request throttling on sensitive endpoints (such as `/auth/login` and `/documents/upload`) shields the backend architecture from brute-force password attacks and malicious Denial-of-Service vectors.
+*   **Token Revocation & Expiry:** Short-lived access tokens limit the attack surface in the event of local device compromise. 
 
 ---
 
-## Lessons Learned & Challenges
+## Repository Structure
 
-*   **Deterministic Gating:** High-stakes institutional applications require deterministic boundaries. Mixing AI with strict operational rules is best executed by utilizing code for calculations and AI exclusively for rendering or extracting unstructured data.
-*   **Real-Time Synchronization:** Building the Server-Sent Events (SSE) pipeline required strict memory management to prevent memory leaks during client disconnects.
-*   **IDOR Vulnerability Mitigation:** Securing endpoints against Insecure Direct Object Reference (IDOR) attacks required complex validation logic mapping JWT tokens strictly to domain profiles across all bulk operations.
+Our codebase is organized into a scalable, professional enterprise tier system.
 
----
-
-## API Reference
-
-The backend exposes a highly structured REST API. Below are key module groupings. You can interactively test these at `https://campusnova-api.onrender.com/docs`.
-
-| Endpoint Group | Primary Function | Security Boundary |
-|---|---|---|
-| `POST /api/v1/auth/*` | JWT Token Issuance & Registration | Public |
-| `GET /api/v1/admin/erp/*` | Core Dashboard Metrics & State | Admin Only |
-| `POST /api/v1/attendance/*` | Geofenced Clock-in & Bulk Sync | Admin / Faculty |
-| `POST /api/v1/resources/resolve-conflict` | Algorithmic Substitute Routing | Admin Only |
-| `POST /api/v1/documents/*` | AI OCR Upload & Approval Pipeline | Authenticated |
-| `GET /api/v1/portals/*` | Faculty & Student Profile Data | Authenticated |
-
----
-
-## Security & Reliability
-
-1.  **Strict Role-Based Access Control (RBAC):** Privileges are distinctly isolated between `admin`, `teacher`, and `student` roles.
-2.  **Insecure Direct Object Reference (IDOR) Prevention:** Cryptographically validated tokens map directly to specific domain profiles, explicitly denying cross-tenant data access.
-3.  **Input Validation:** Deep schema validation via Pydantic prevents injection attacks and guarantees safe data ingestion.
-4.  **Rate Limiting:** IP-based request throttling shields the platform from denial-of-service vectors.
+```text
+CampusNova/
+├── backend/
+│   ├── app/                # Core FastAPI application (routing, models, services)
+│   ├── tests/              # Pytest suites ensuring endpoint reliability
+│   ├── requirements.txt    # Python dependencies
+│   └── Dockerfile          # Containerization for consistent environments
+├── frontend/
+│   ├── app/                # Next.js 14 App Router (pages and layouts)
+│   ├── components/         # Reusable React UI widgets
+│   └── lib/                # API clients, state management, and utilities
+├── docs/                   # Architecture diagrams and technical specifications
+├── scripts/                # Database seeding and automation scripts
+└── docker-compose.yml      # Local development container orchestration
+```
 
 ---
 
@@ -282,16 +312,19 @@ npm run dev
 
 ---
 
-## Future Roadmap
+## Future Roadmap & Enterprise Scalability
 
-The current architecture represents a production-ready foundation. Future extensions planned post-hackathon include:
-*   **Distributed Caching:** Integrating Redis to accelerate frequent dashboard metric reads.
-*   **Message Queues:** Implementing Celery or RabbitMQ to completely offload heavy OCR document processing tasks from the primary ASGI thread.
-*   **Kubernetes Orchestration:** Preparing horizontal pod autoscaling configurations for large-scale institutional deployment.
-*   **Advanced Analytics:** Integrating predictive models for seasonal attendance drops.
+While the current architecture delivers a highly resilient, production-ready Minimum Viable Product (MVP), our strategic roadmap anticipates significant scale.
+
+*   **Kubernetes Horizontal Pod Autoscaling (HPA):** Transitioning from Docker Compose to managed Kubernetes clusters. This will enable the automatic scaling of the FastAPI pods in response to CPU utilization spikes during morning attendance rushes.
+*   **Distributed Caching Layer:** Integrating Redis to cache high-frequency read requests (e.g., the primary dashboard summary). This will drastically reduce MongoDB query volume and drive latency down to sub-millisecond ranges.
+*   **Asynchronous Message Brokers:** Implementing Celery backed by RabbitMQ to completely decouple the AI OCR processing from the primary ASGI thread, allowing the backend to ingest massive batches of physical forms without degrading API response times.
+*   **Multi-Tenant Database Sharding:** As deployment expands across distinct institutional campuses, MongoDB collections will be sharded based on tenant IDs, ensuring data isolation and limitless horizontal scalability.
 
 ---
 
+<br/>
+
 <div align="center">
-  <p>Made with ❤️ by <b>Team Haigure</b></p>
+  <p>Made with Care by <b>Team Haigure</b></p>
 </div>
