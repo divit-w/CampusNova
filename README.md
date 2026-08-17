@@ -22,7 +22,7 @@
 
 <br />
 
-<h2><a href="https://campus-nova-sand.vercel.app/login"><u>Try It Live &rarr;</u></a></h2>
+### [Try It Live &rarr;](https://campus-nova-sand.vercel.app/login)
 
 **[Backend API Service (FastAPI & Render)](https://campusnova-api.onrender.com)** &nbsp;|&nbsp; **[Interactive API Documentation (Swagger UI)](https://campusnova-api.onrender.com/docs)**
 
@@ -148,7 +148,9 @@ At the core of CampusNova is a deterministic solver engine that computes resourc
 ### 1. Haversine Geofencing Engine
 Faculty attendance relies on precise spatial boundaries to prevent spoofing. The distance $d$ between the faculty's reported GPS coordinates $(\phi_2, \lambda_2)$ and the institution's predefined centroid $(\phi_1, \lambda_1)$ is computed utilizing the Haversine formula:
 
-$$ d = 2r \arcsin\left(\sqrt{\sin^2\left(\frac{\phi_2 - \phi_1}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\lambda_2 - \lambda_1}{2}\right)}\right) $$
+$$
+d = 2r \arcsin\left(\sqrt{\sin^2\left(\frac{\phi_2 - \phi_1}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\lambda_2 - \lambda_1}{2}\right)}\right)
+$$
 
 *   $r$: Earth's radius (approximately 6371 km).
 *   $\phi, \lambda$: Latitude and longitude mapped in radians.
@@ -158,15 +160,27 @@ $$ d = 2r \arcsin\left(\sqrt{\sin^2\left(\frac{\phi_2 - \phi_1}{2}\right) + \cos
 Instead of manual permutation, we utilize a CP-SAT solver to maximize institutional efficiency. Let $X_{t,c,r}$ be a boolean decision variable that equals $1$ if teacher $t$ is assigned to class $c$ in room $r$.
 
 **Objective Function (Maximize Subject Preference & Minimize Gaps):**
-$$ \text{Maximize} \sum_{t \in T} \sum_{c \in C} \sum_{r \in R} (P_{t,c} \cdot X_{t,c,r}) - \text{IdlePenalty}_t $$
+$$
+\text{Maximize} \sum_{t \in T} \sum_{c \in C} \sum_{r \in R} (P_{t,c} \cdot X_{t,c,r}) - \text{IdlePenalty}_t
+$$
 
-*   **Hard Constraint (No Overlaps):** $\sum_{c} \sum_{r} X_{t,c,r} \le 1$ for any given time block. Ensures a faculty member is never double-booked.
-*   **Hard Constraint (Capacity):** $\text{Enrolled}_c \le \text{Capacity}_r$. Guarantees the assigned room can physically accommodate the students.
+*   **Hard Constraint (No Overlaps):** 
+$$
+\sum_{c} \sum_{r} X_{t,c,r} \le 1
+$$
+Ensures a faculty member is never double-booked for any given time block.
+*   **Hard Constraint (Capacity):** 
+$$
+\text{Enrolled}_c \le \text{Capacity}_r
+$$
+Guarantees the assigned room can physically accommodate the students.
 
 ### 3. Substitute Ranking Algorithm
 When an instructor is marked absent, the resolver queries the active daily matrix and computes a normalized compatibility score $S_c$ for every available candidate $c$:
 
-$$ S_c = (w_1 \times \text{TaxonomyMatch}) + (w_2 \times \text{Proximity}) - (w_3 \times \text{FatiguePenalty}) $$
+$$
+S_c = (w_1 \times \text{TaxonomyMatch}) + (w_2 \times \text{Proximity}) - (w_3 \times \text{FatiguePenalty})
+$$
 
 *   $w_1, w_2, w_3$: Tunable institutional weights prioritizing subject expertise over proximity.
 *   The candidate with the highest global $S_c$ score is instantly proposed on the dashboard for minimal-click assignment.
