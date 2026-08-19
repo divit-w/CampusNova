@@ -57,6 +57,7 @@ CampusNova was engineered specifically to tackle the **Future-Ready Ops Innovati
 *   **Timetabling Clashes:** Manually resolving double-booked faculty and room overlaps required hundreds of administrative hours per semester.
 *   **Delayed Substitute Tracking:** Sudden faculty absences led to chaotic, reactionary reassignments, often resulting in unsupervised classrooms.
 *   **Attendance Friction:** Legacy attendance ledgers were prone to human error, proxy attendance (spoofing), and delayed reporting to stakeholders.
+*   **Zero-Hardware Operations:** Legacy institutional ERPs rely on expensive, high-maintenance biometric hardware (fingerprint terminals and physical facial recognition kiosks). CampusNova eliminates these capital expenditures entirely by leveraging the user's existing smartphone hardware, WebRTC, and browser-based Edge AI, transforming any mobile device into a secure biometric terminal.
 
 ### Iterative Development and Architectural Pivots
 Our engineering journey was defined by rapid iteration and crucial architectural pivots necessary to build a truly production-grade system within the hackathon timeframe. 
@@ -145,16 +146,20 @@ flowchart TB
 
 At the core of CampusNova is a deterministic solver engine that computes resource allocation without relying on unpredictable AI outputs. We keep the math transparent and strictly code-based.
 
-### 1. Haversine Geofencing Engine
-Faculty attendance relies on precise spatial boundaries to prevent spoofing. The distance $d$ between the faculty's reported GPS coordinates $(\phi_2, \lambda_2)$ and the institution's predefined centroid $(\phi_1, \lambda_1)$ is computed utilizing the Haversine formula:
+### 1. Edge AI Liveness & Haversine Geofencing Engine
+Faculty attendance operates on a zero-hardware architecture secured by dual-layer validation.
+
+**Liveness HUD & Luminance Check:**
+Before a network payload is even constructed, the system evaluates environmental luminance (e.g., "67% Optimal") and face positioning on the edge using WebAssembly. This prevents photo-spoofing and ensures optimal conditions for facial recognition without server roundtrips.
+
+**Geofencing Integration:**
+Precise spatial boundaries further prevent proxy clock-ins. The distance $d$ to the target campus centroid is calculated using the Haversine formula:
 
 $$
 d = 2r \arcsin\left(\sqrt{\sin^2\left(\frac{\phi_2 - \phi_1}{2}\right) + \cos(\phi_1)\cos(\phi_2)\sin^2\left(\frac{\lambda_2 - \lambda_1}{2}\right)}\right)
 $$
 
-*   $r$: Earth's radius (approximately 6371 km).
-*   $\phi, \lambda$: Latitude and longitude mapped in radians.
-*   **Validation:** If $d \le \text{Threshold}$, the clock-in is authorized; otherwise, it is flagged as a geospatial anomaly and requires administrative override.
+Where $r$ is Earth's radius, $\phi$ is latitude, and $\lambda$ is longitude. If the calculated distance $d$ exceeds the campus radius threshold (e.g., 500m), the API mathematically rejects the clock-in.
 
 ### 2. Timetable Optimization (Constraint Programming)
 Instead of manual permutation, we utilize a CP-SAT solver to maximize institutional efficiency. Let $X_{t,c,r}$ be a boolean decision variable that equals $1$ if teacher $t$ is assigned to class $c$ in room $r$.
@@ -184,6 +189,15 @@ The institutional knowledge base operates on a localized RAG pipeline.
 *   **Vector Search Mechanics:** High-dimensional vectors are stored in ChromaDB. When an administrator queries the AI Command interface, the system performs a cosine similarity search to retrieve the most semantically relevant text chunks.
 *   **Synthesis:** The retrieved context is passed alongside the user's query to the LLM, effectively grounding the generative response in verified institutional policy and eliminating hallucinations.
 
+### 5. Vision OCR Bulk Attendance
+For fallback scenarios or legacy ledger integration, the system provides multi-row document intelligence. Administrators drop a photo of a physical paper register into the dashboard.
+
+**State Machine Evaluation:** 
+The AI extracts the rows, but the Python Deterministic Engine evaluates each row individually, applying strict temporal, identity, and conflict boundary checks.
+
+**Idempotency:** 
+Database writes utilize MongoDB `upsert` operations bounded by composite keys (Student ID + Date). This ensures that accidental duplicate clicks or network retries never result in corrupted or duplicated attendance ledgers.
+
 ---
 
 ## Feature Showcase
@@ -198,10 +212,11 @@ Automated conflict resolution allows administrators to generate semester timetab
 
 ![Timetable Generator](screenshots/timetable.png)
 
-### 3. Faculty Attendance & Geofencing
-Secure, location-aware faculty check-ins using the Haversine distance formula, complete with spoofing detection and real-time dashboard state synchronization.
+### 3. Zero-Hardware Edge AI Faculty Attendance
+Secure, location-aware faculty check-ins utilizing the Haversine distance formula and browser-based WebAssembly. Complete with real-time liveness HUD, spoofing detection, and dashboard state synchronization.
 
-![Attendance Tracking](screenshots/attendance.png)
+![Edge AI HUD Liveness Check](./screenshots/faculty_attendence_demo.jpg)
+![Attendance Dashboard & Geofence](./screenshots/faculty_attendence.jpg)
 
 ### 4. AI Document Processing
 Physical leave requests or administrative forms uploaded to the system are processed asynchronously. Optical character recognition extracts the critical metadata and routes it to the appropriate administrative queue.
