@@ -212,34 +212,48 @@ Automated conflict resolution allows administrators to generate semester timetab
 
 ![Timetable Generator](screenshots/timetable.png)
 
-### 3. Zero-Hardware Edge AI Faculty Attendance
-Secure, location-aware faculty check-ins utilizing the Haversine distance formula and browser-based WebAssembly. Complete with real-time liveness HUD, spoofing detection, and dashboard state synchronization.
+### 3. Edge AI Faculty Liveness Portal
+Our Zero-Hardware architecture eliminates the need for expensive physical biometric kiosks, transforming any standard mobile device into a secure biometric terminal via browser-based Edge AI. 
 
-![Edge AI HUD Liveness Check](./screenshots/faculty_attendence_demo.jpg)
-![Attendance Dashboard & Geofence](./screenshots/faculty_attendence.jpg)
+<div align="center"><img src="./screenshots/faculty_attendence_demo.jpg" alt="Edge AI Liveness HUD" width="100%" /></div>
 
-### 4. AI Document Processing
+**Multi-Layer Security Validation:**
+*   **Spatial Validation:** Mathematically computes distance to the campus centroid utilizing the Haversine formula for strict GPS geofencing.
+*   **Network Validation:** Cross-references the device's IP address with the verified Campus Wi-Fi network, instantly rejecting VPN-spoofed remote locations.
+*   **Biometric Liveness:** Leverages on-device dynamic gesture recognition and luminance checks to defeat spoofing attempts using iPads or printed photographs.
+
+### 4. Centralized Attendance & Bulk OCR Engine
+The institutional command center for all student and faculty attendance logistics.
+
+<div align="center"><img src="./screenshots/faculty_attendence.jpg" alt="Attendance Dashboard" width="100%" /></div>
+
+**Core Features:**
+*   **Unified Dashboard:** Provides a high-level overview of daily present, absent, and excused metrics.
+*   **Vision OCR Pipeline:** Administrators upload photos of handwritten, physical paper registers. The system's multi-row document intelligence automatically extracts the tabular data.
+*   **Database Synchronization:** The Python Deterministic Engine evaluates each extracted student row individually, safely and idempotently updating the database records without manual data entry.
+
+### 5. AI Document Processing
 Physical leave requests or administrative forms uploaded to the system are processed asynchronously. Optical character recognition extracts the critical metadata and routes it to the appropriate administrative queue.
 
 ![Document Processing](screenshots/documents.png)
 ![Document Library](screenshots/doc%20library.png)
 
-### 5. Institutional Knowledge Base
+### 6. Institutional Knowledge Base
 A centralized repository powered by ChromaDB for querying institutional policies, procedures, and historical data instantly.
 
 ![Knowledge Base](screenshots/knowledge.png)
 
-### 6. Transport & Fleet Operations
+### 7. Transport & Fleet Operations
 Live tracking and predictive metrics for institutional transport fleets, providing high-level oversight of campus logistics.
 
 ![Transport Management](screenshots/transport.png)
 
-### 7. AI Command Interface
+### 8. AI Command Interface
 Natural language processing interface allowing administrators to query system data conversationally, grounded perfectly by our RAG vector embeddings.
 
 ![AI Command Center](screenshots/ai%20command.png)
 
-### 8. User Identity Management
+### 9. User Identity Management
 Hierarchical, role-based access control interfaces allowing granular permission settings.
 
 ![User Management](screenshots/user%20management.png)
