@@ -11,12 +11,14 @@ import type {
   RAGResponse,
   ResolveConflictResponse,
   ResourceConflictRequest,
+  StudentAttendanceSummaryResponse,
   StudentRecord,
   TimetableConstraintPayload,
   TimetableJob,
   Token,
   TransportOptimizationRequest,
   TransportOptimizationResponse,
+  TransportRoutesSummaryResponse,
   User,
 } from "./types"
 
@@ -161,6 +163,14 @@ export const api = {
     return request<ClassResponse[]>("/portals/teacher/my-classes")
   },
 
+  /* Student portal (student) */
+  async studentSchedule(): Promise<ClassResponse[]> {
+    return request<ClassResponse[]>("/portals/student/my-schedule")
+  },
+  async studentAttendanceSummary(): Promise<StudentAttendanceSummaryResponse> {
+    return request<StudentAttendanceSummaryResponse>("/portals/student/attendance-summary")
+  },
+
   /* Attendance (teacher, admin) */
   async processAttendanceSheet(file: File, date?: string): Promise<ProcessSheetResponse> {
     const fd = new FormData()
@@ -188,6 +198,9 @@ export const api = {
   /* Transport (admin) */
   async optimizeRoutes(payload: TransportOptimizationRequest): Promise<TransportOptimizationResponse> {
     return request<TransportOptimizationResponse>("/transport/optimize-routes", { method: "POST", body: payload })
+  },
+  async transportRoutesSummary(): Promise<TransportRoutesSummaryResponse> {
+    return request<TransportRoutesSummaryResponse>("/transport/routes-summary")
   },
 
   /* Knowledge base / RAG (admin) */
