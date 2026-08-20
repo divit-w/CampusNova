@@ -31,7 +31,9 @@ async def resolve_conflict(
         "time_slot": request.time_slot
     }).to_list(length=1000)
 
-    busy_teacher_ids = [c["substitute_teacher_id"] for c in conflicts]
+    # Use .get() to safely extract substitute_teacher_id — a missing field must not crash the endpoint.
+    busy_teacher_ids = [c.get("substitute_teacher_id", "") for c in conflicts]
+    busy_teacher_ids = [tid for tid in busy_teacher_ids if tid]  # drop any empty strings
     busy_teacher_ids.append(request.absent_teacher_id)
 
     available_teachers = await mongo_db.teachers_collection.find({
@@ -61,9 +63,12 @@ async def resolve_conflict(
 
     await mongo_db.substitutions_collection.insert_one(substitution_record)
 
+    # Use .get() with ID fallback to guard against teacher documents missing a 'name' field.
+    absent_name = absent_teacher.get("name") or absent_teacher.get("id", request.absent_teacher_id)
+    substitute_name = substitute.get("name") or substitute.get("id", "Unknown")
     alert_message = {
         "type": "alert",
-        "message": f"Substitute {substitute['name']} assigned for {absent_teacher['name']} at {request.time_slot}."
+        "message": f"Substitute {substitute_name} assigned for {absent_name} at {request.time_slot}."
     }
     await alert_manager.broadcast(alert_message)
 

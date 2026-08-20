@@ -89,3 +89,43 @@ def test_query_database_failure_503(mock_get_collection, mock_embeddings):
     response = client.post("/api/v1/knowledge/query", json={"query": "Will it fail?"})
     assert response.status_code == 503
     assert response.json()["detail"] == "Database service temporarily unavailable"
+
+
+@patch("app.api.v1.knowledge.openai_client.embeddings.create", new_callable=AsyncMock)
+@patch("app.api.v1.knowledge.chroma_db.get_or_create_collection")
+@patch("app.api.v1.knowledge.call_llm", new_callable=AsyncMock)
+def test_knowledge_rag_unparseable_json_fallback(mock_call_llm, mock_get_collection, mock_embeddings):
+    """
+    Regression test for the UnboundLocalError bug:
+    When the LLM returns malformed/non-JSON content, json.loads() raises an exception.
+    The endpoint must NOT crash with UnboundLocalError on the subsequent content.get() call.
+    It must return 200 with a clean fallback answer string.
+    """
+    mock_embed_resp = MagicMock()
+    mock_embed_resp.data = [MagicMock(embedding=[0.1, 0.2])]
+    mock_embeddings.return_value = mock_embed_resp
+
+    mock_collection = MagicMock()
+    mock_collection.query.return_value = {
+        "distances": [[0.1]],
+        "documents": [["Some relevant chunk"]],
+        "metadatas": [[{"document_id": "doc1", "chunk_index": 0}]],
+    }
+    mock_get_collection.return_value = mock_collection
+
+    # Simulate LLM returning completely malformed non-JSON output
+    mock_llm_resp = MagicMock()
+    mock_llm_resp.choices = [
+        MagicMock(message=MagicMock(content="INVALID_JSON{{{"))
+    ]
+    mock_call_llm.return_value = mock_llm_resp
+
+    response = client.post("/api/v1/knowledge/query", json={"query": "What is the policy?"})
+
+    # Must NOT be 500 — the UnboundLocalError must be fully suppressed
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.json()}"
+    data = response.json()
+    # The fallback answer must be a non-empty string, not a crash
+    assert isinstance(data["answer"], str)
+    assert len(data["answer"]) > 0
+    assert "query" in data

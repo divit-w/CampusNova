@@ -269,3 +269,33 @@ async def test_normal_payload_not_rejected(async_client):
     # Health check has no auth requirement; a small request should always pass the size middleware
     resp = await async_client.get("/health")
     assert resp.status_code == 200
+
+
+# ──────────────────── Student Profile Integrity ──────────────────────
+
+@pytest.mark.asyncio
+@patch("app.api.v1.deps.mongo_db.users_collection.find_one", new_callable=AsyncMock)
+@patch("app.api.v1.endpoints.portals.mongo_db.students_collection.find_one", new_callable=AsyncMock)
+async def test_student_schedule_missing_grade_returns_400(mock_student_find, mock_find_user, async_client):
+    """
+    Regression test for the KeyError bug:
+    A student document missing the 'grade' field must return 400 Bad Request,
+    not crash with a KeyError 500.
+    """
+    mock_find_user.return_value = {"id": "student1", "role": "student"}
+    # Intentionally missing 'grade' — only 'section' is present
+    mock_student_find.return_value = {
+        "student_id": "student1",
+        "full_name": "Incomplete Student",
+        "section": "A",
+        "email": "incomplete@campus.edu",
+        # 'grade' is intentionally absent — simulates an incomplete DB record
+    }
+
+    resp = await async_client.get(
+        "/api/v1/portals/student/my-schedule",
+        headers={"Authorization": f"Bearer {student_token()}"},
+    )
+    assert resp.status_code == 400, f"Expected 400, got {resp.status_code}: {resp.json()}"
+    assert "incomplete" in resp.json()["detail"].lower()
+    assert "grade" in resp.json()["detail"].lower()
