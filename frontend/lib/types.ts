@@ -97,6 +97,11 @@ export interface GenerateJobAck {
   status: JobStatus
 }
 
+/* Convenience aliases used across the timetable UI. */
+export type TimetablePayload = TimetableConstraintPayload
+export type TimetableResult = SolverResult
+export type TimetableStatusResponse = TimetableJob
+
 /* ── NLP / ERP — app/schemas/erp.py ─────────────────────────────────── */
 
 export interface PromptResponse {
