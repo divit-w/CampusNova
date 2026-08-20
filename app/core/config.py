@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIR: str = "./chroma_db"
     LOG_LEVEL: str = "INFO"
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:8000"]
+    CAMPUS_LAT: float = 28.6304
+    CAMPUS_LON: float = 77.3711
+    GEOFENCE_RADIUS_METERS: float = 50.0
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
