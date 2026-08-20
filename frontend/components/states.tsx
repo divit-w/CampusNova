@@ -9,10 +9,12 @@ import { easeOutSoft } from "@/lib/motion"
 import { cn } from "@/lib/utils"
 
 export function PageHeading({
+  icon,
   title,
   description,
   actions,
 }: {
+  icon?: React.ReactNode
   title: string
   description?: string
   actions?: React.ReactNode
@@ -24,9 +26,16 @@ export function PageHeading({
       transition={easeOutSoft}
       className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
     >
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-balance">{title}</h2>
-        {description && <p className="mt-1.5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">{description}</p>}
+      <div className="flex items-start gap-3">
+        {icon && (
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+            {icon}
+          </span>
+        )}
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight text-balance">{title}</h2>
+          {description && <p className="mt-1.5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">{description}</p>}
+        </div>
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
     </motion.div>
