@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react"
-import { Bus, CalendarRange, LayoutDashboard, MessagesSquare, Repeat2, Sparkles, UserRound } from "lucide-react"
+import { Bus, CalendarRange, ClipboardCheck, LayoutDashboard, Repeat2, Sparkles, UserRound } from "lucide-react"
 import type { Role } from "./types"
 
 export interface NavItem {
@@ -7,7 +7,6 @@ export interface NavItem {
   href: string
   icon: LucideIcon
   roles: Role[]
-  phase2?: boolean
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -15,8 +14,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "AI Command", href: "/assistant", icon: Sparkles, roles: ["admin"] },
   { label: "Timetable", href: "/timetable", icon: CalendarRange, roles: ["admin"] },
   { label: "Substitutes", href: "/substitute", icon: Repeat2, roles: ["admin"] },
-  { label: "Attendance", href: "/attendance", icon: MessagesSquare, roles: ["admin"], phase2: true },
-  { label: "Transport", href: "/transport", icon: Bus, roles: ["admin"], phase2: true },
+  { label: "Attendance", href: "/attendance", icon: ClipboardCheck, roles: ["admin", "teacher"] },
+  { label: "Transport", href: "/transport", icon: Bus, roles: ["admin"] },
   { label: "My Schedule", href: "/my-schedule", icon: UserRound, roles: ["teacher", "student"] },
 ]
 

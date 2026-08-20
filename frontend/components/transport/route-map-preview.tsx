@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Map, Route } from "lucide-react"
+import { Map as MapIcon, Route } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { EmptyState } from "@/components/states"
@@ -34,7 +34,7 @@ export function RouteMapPreview({ vehicles, routes }: { vehicles: VehicleSpec[];
       <Card className="flex h-full flex-col overflow-hidden">
         <div className="flex items-center gap-2.5 border-b border-border p-5">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-muted-foreground">
-            <Map className="h-[18px] w-[18px]" />
+            <MapIcon className="h-[18px] w-[18px]" />
           </span>
           <div>
             <p className="text-sm font-semibold leading-tight">Route preview</p>
@@ -72,7 +72,7 @@ export function RouteMapPreview({ vehicles, routes }: { vehicles: VehicleSpec[];
       <div className="flex items-center justify-between border-b border-border p-5">
         <div className="flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-secondary text-muted-foreground">
-            <Map className="h-[18px] w-[18px]" />
+            <MapIcon className="h-[18px] w-[18px]" />
           </span>
           <div>
             <p className="text-sm font-semibold leading-tight">Route preview</p>
