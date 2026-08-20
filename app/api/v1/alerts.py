@@ -1,6 +1,6 @@
 import asyncio
 import json
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse
 
 router = APIRouter()
@@ -36,6 +36,8 @@ async def event_generator(request: Request):
         if q in alert_manager.queues:
             alert_manager.queues.remove(q)
 
+from app.api.v1.deps import get_current_user_ws
+
 @router.get("/stream")
-async def stream_alerts(request: Request):
+async def stream_alerts(request: Request, current_user: dict = Depends(get_current_user_ws)):
     return StreamingResponse(event_generator(request), media_type="text/event-stream")

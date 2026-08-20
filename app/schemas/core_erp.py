@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 
 
 class StudentCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     student_id: str
     full_name: str
     grade: str
@@ -20,6 +21,7 @@ class StudentResponse(BaseModel):
 
 
 class TeacherCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     teacher_id: str
     full_name: str
     subjects: List[str]
@@ -35,6 +37,7 @@ class TeacherResponse(BaseModel):
 
 
 class ClassCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     class_id: str
     teacher_id: str
     subject: str

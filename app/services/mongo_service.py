@@ -21,5 +21,8 @@ class MongoManager:
         self.subjects_collection = self.db.get_collection("subjects")
         self.classes_collection = self.db.get_collection("classes")
         self.transport_routes_collection = self.db.get_collection("transport_routes")
+        # Timetable background job state — persists job status and result across the
+        # 10s solver window. Allows the endpoint to return 202 immediately.
+        self.timetable_jobs_collection = self.db.get_collection("timetable_jobs")
 
 mongo_db = MongoManager()
