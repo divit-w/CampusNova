@@ -10,7 +10,8 @@
 > repository source and cites the file it came from. If a row is wrong, the backend has
 > changed since this doc was written — fix the row before building against it.
 >
-> **Status:** Awaiting approval. No frontend code has been written yet.
+> **Status:** Awaiting final approval (rev. 2 — incorporates senior architectural audit,
+> see §5.5). No frontend code has been written yet. Build begins only on explicit confirmation.
 
 ---
 
@@ -42,6 +43,7 @@ Teacher/student accounts can log in but will receive `403` on every Phase 1 feat
 | Motion | Framer Motion | Spring transitions, respects reduced-motion |
 | Real-time | Native `EventSource` (SSE) | Matches backend `text/event-stream` |
 | Icons | lucide-react | Consistent line icons |
+| Sanitization | DOMPurify (only if HTML ever needed) | XSS mitigation for LLM output — see §5.5 P0-3 |
 | Location | `frontend/` subfolder | Isolated from the Python `app/` package |
 
 No state-management library — SWR cache + React context (auth, alerts) is sufficient for Phase 1.
@@ -66,6 +68,7 @@ The frontend is fully contained in `frontend/` so nothing collides:
       (app)/assistant/page.tsx   <- NLP Command Center
       (app)/timetable/page.tsx   <- Timetable Workspace
       (app)/substitute/page.tsx  <- Substitute Resolution
+      (app)/my-schedule/page.tsx <- Teacher read-only schedule (RBAC landing, see §5.5 P1-6)
       (app)/attendance/page.tsx  <- "Coming in Phase 2"
       (app)/transport/page.tsx   <- "Coming in Phase 2"
       layout.tsx                 <- root, fonts, <html class="bg-background">
@@ -77,7 +80,10 @@ The frontend is fully contained in `frontend/` so nothing collides:
       types.ts      <- TS mirrors of backend schemas
     components/
       ui/           <- shadcn primitives
-      sidebar.tsx, header.tsx, result-renderer.tsx, timetable-grid.tsx, ...
+      sidebar.tsx, header.tsx, result-renderer.tsx, timetable-grid.tsx,
+      connection-pill.tsx      <- fixed bottom-left SSE status pill (§5.5 P2-8)
+      solver-progress.tsx      <- determinate fake-progress overlay (§5.5 P1-4)
+      subject-color.ts         <- deterministic subject→semantic-color map (§5.5 P1-5)
     .env.local      <- NEXT_PUBLIC_API_URL
     package.json
 ```
@@ -223,7 +229,51 @@ appear in real time on any open session.
 - Dedupes identical consecutive alert messages; renders `type:"alert"` as a toast + keeps a
   small in-memory feed for the session.
 
----
+### 5.4 SSE lifecycle (leak-safe implementation contract)
+`lib/alerts.tsx` follows this exact pattern (audit P0-1):
+- The `EventSource` instance is held in a `useRef` (not state) so re-renders never spawn duplicates.
+- The reconnect timer id is held in a `useRef`.
+- The connecting `useEffect` returns a cleanup that **both** calls `eventSource.close()` **and**
+  `clearTimeout(reconnectTimerRef.current)`, so unmount/token-change never leaks a socket or timer.
+- Reconnect uses exponential backoff; each new attempt closes any prior instance first.
+
+### 5.5 Senior Architectural Audit — binding directives
+
+These are **binding on the Phase 1 implementation**. Each is traceable to the code that satisfies it.
+
+**P0 — correctness / resource safety**
+
+| # | Directive | Where enforced | Acceptance check |
+|---|---|---|---|
+| P0-1 | SSE memory-leak prevention | `lib/alerts.tsx` (§5.4) | `EventSource` in `useRef`; `useEffect` cleanup calls `.close()` **and** clears reconnect timer |
+| P0-2 | SWR polling stop condition | `(app)/timetable/page.tsx` | `refreshInterval: data?.status === "processing" ? 1000 : 0` — polling halts on terminal state |
+| P0-3 | XSS mitigation on LLM output | `components/result-renderer.tsx` | All NLP text rendered via React `textContent` (JSX children); **no** `dangerouslySetInnerHTML`. DOMPurify only if HTML rendering is ever required |
+
+> Note on P0-2: the backend job `status` values are `processing` → `completed`/`failed`
+> (§4.3). The SWR key polls while `processing` and stops (interval `0`) once terminal. Confirm
+> the exact in-progress string is `processing` so the stop condition matches.
+
+**P1 / P2 — UX & live-demo polish**
+
+| # | Directive | Where enforced | Behavior |
+|---|---|---|---|
+| P1-4 | Timetable solver progress (no generic spinner) | `components/solver-progress.tsx` | Determinate bar animates 0→90% over ~10s via CSS, **holds at 90%** until the poll resolves, then completes to 100%. Overlay shows live constraint params, e.g. "Solving for 5 days × 6 periods, 4 teachers, 6 subjects…" |
+| P1-5 | Timetable grid hero UI | `components/timetable-grid.tsx` + `subject-color.ts` | Polished color-coded matrix; each subject gets a **consistent** semantic color (deterministic hash → fixed token palette), legible cells with teacher/room/cohort |
+| P1-6 | Teacher Portal preview (prove RBAC) | `(app)/my-schedule/page.tsx` + guard | Non-admins are **actively routed** to a read-only Teacher Schedule view (not just blocked). Admins keep full nav. Demonstrates role routing works end-to-end |
+| P2-7 | NLP 502 → specific state | `(app)/assistant/page.tsx` | `502` maps to a dedicated **"AI Service Temporarily Unavailable"** state (distinct from `429`/`403`/generic error) |
+| P2-8 | SSE indicator placement | `components/connection-pill.tsx` | Live connection indicator is a **fixed bottom-left pill** (cyan "Connected" / amber "Reconnecting…"), present on every authenticated screen |
+
+**Design & motion (non-negotiable, applies to all of the above):** strict light theme (white
+app shell, `slate-50` workspaces), premium iOS/Telegram feel, **spring transitions on all layout
+shifts**, shared easing tokens, subtle micro-animations, full `prefers-reduced-motion` fallback.
+No blocky, static, or generic boilerplate styling. The P1-4 progress bar, P1-5 grid, and P2-8
+pill must all animate with the shared easing system.
+
+> **P1-6 open question for backend author:** the read-only Teacher Schedule needs a data source.
+> There is **no** per-teacher schedule endpoint verified in Phase 1 (`/timetable/status/{job_id}`
+> is admin-only and job-scoped). Options: (a) Phase 1 ships the Teacher Schedule as a **read-only
+> UI shell** with a clear "no personal schedule endpoint yet" empty state, or (b) you expose a
+> teacher-scoped read endpoint and we wire it live. Please pick (a) or (b).
 
 ## 6. Access / Role Model (functional, must-confirm)
 
@@ -237,6 +287,11 @@ appear in real time on any open session.
 **Implication:** Phase 1 ships an **admin console**. This is a deliberate scoping outcome, not
 a frontend limitation. Teacher/student portals are Phase 4. Backend author: confirm this is the
 intended Phase 1 audience.
+
+**RBAC routing (audit P1-6):** rather than only blocking non-admins, the app **actively routes**
+any non-admin to a read-only **Teacher Schedule** view (`/my-schedule`) on login, and admins to
+the full workflow set. This proves role-based routing works end-to-end for the demo. The data
+source for that view is the §5.5 open question (option a vs b).
 
 ---
 
@@ -264,8 +319,9 @@ intended Phase 1 audience.
 ### 8.2 App shell (`(app)/layout.tsx`)
 - **3-state collapsible sidebar:** expanded (labels) / collapsed (icons + tooltips) / mobile
   slide-over. Nav: Home, Assistant, Timetable, Substitute, Attendance, Transport.
-- **Header:** page title, live **connection indicator** (from AlertProvider), user menu
-  (name, role badge, logout).
+- **Header:** page title, user menu (name, role badge, logout).
+- **Live connection indicator** is a **fixed bottom-left pill** (audit P2-8), not in the header —
+  cyan "Connected" / amber "Reconnecting…", visible on every authenticated screen.
 - Mounts `AlertProvider` so toasts work on every screen.
 
 ### 8.3 Home (`(app)/page.tsx`) — minimal
@@ -279,16 +335,24 @@ intended Phase 1 audience.
   - `results` is a list of objects → responsive table (columns = union of keys).
   - `results` is a single object → key/value panel.
   - empty → friendly empty state.
-- Handles `429` (rate-limit) with a cooldown message; handles `403` (non-admin) explicitly.
+- **All rendered text is sanitized** — output goes through React `textContent`/JSX children,
+  never `dangerouslySetInnerHTML` (audit P0-3).
+- Error states are distinct: `429` (rate-limit cooldown), `403` (non-admin), and
+  **`502` → "AI Service Temporarily Unavailable"** (audit P2-7), plus a generic fallback.
 
 ### 8.5 Timetable Workspace (`/timetable`)
 - **Constraint form** for `TimetableConstraintPayload`: days/periods steppers; editable lists
   for teachers/rooms/subjects/cohorts; hard-constraint toggles; optional fixed slots; soft-weight
   sliders. A **"Load sample"** button fills a known-feasible payload for demos.
-- **Submit:** `POST /generate` → get `job_id` → poll `GET /status/{job_id}` (SWR) with a live
-  "Solving…" state until `completed`/`failed`.
-- **Output grid:** day (columns) × period (rows) matrix; each cell shows subject/teacher/room/
-  cohort from the `schedule` array.
+- **Submit:** `POST /generate` → get `job_id` → poll `GET /status/{job_id}` via SWR with the
+  **stop condition** `refreshInterval: data?.status === "processing" ? 1000 : 0` (audit P0-2) so
+  polling halts the instant the job is terminal.
+- **Loading state (audit P1-4):** a **determinate fake-progress bar** (CSS 0→90% over ~10s,
+  holds at 90% until the poll resolves, then completes to 100%) — not a generic spinner. The
+  overlay displays the live constraint parameters ("Solving for 5 days × 6 periods, N teachers…").
+- **Output grid (audit P1-5):** day (columns) × period (rows) **color-coded matrix**; each
+  subject is assigned a **consistent semantic color** (deterministic map), each cell shows
+  subject/teacher/room/cohort from the `schedule` array. Polished, animated entrance with shared easing.
 - **Explainability badges (frontend-derived, see §4.3 note):** solver `status`
   (OPTIMAL/FEASIBLE = green; INFEASIBLE/MODEL_INVALID = amber/red), which hard constraints were
   requested, and grid occupancy. `failed`/`422` shows a clear unsatisfiable explanation.
@@ -300,7 +364,14 @@ intended Phase 1 audience.
 - Because the backend broadcasts an SSE alert on success, a **toast** appears live confirming
   the assignment (good demo moment — open two sessions).
 
-### 8.7 Phase 2 placeholders (`/attendance`, `/transport`)
+### 8.7 Teacher Schedule — read-only (`/my-schedule`, audit P1-6)
+- Where non-admin users land after login (RBAC routing proof).
+- Read-only, on-brand schedule view reusing the color-coded grid styling.
+- Data source per §5.5 open question: option (a) polished read-only shell with a clear
+  "no personal schedule endpoint yet" empty state, or (b) wired to a teacher-scoped endpoint if
+  the backend author exposes one.
+
+### 8.8 Phase 2 placeholders (`/attendance`, `/transport`)
 - Static, on-brand "Coming in Phase 2" screens so routing/nav are complete. No data wiring.
 
 ---
@@ -335,8 +406,9 @@ Point `NEXT_PUBLIC_API_URL` at the running FastAPI instance (`uvicorn app.main:a
 |---|---|---|
 | Wrong login | `401` | Inline form error |
 | Expired token (>8d) | `401` "Token expired" | Auto-logout → `/login` |
-| Non-admin hits workflow | `403` "Not enough permissions" | Pre-disabled nav + explicit message |
+| Non-admin logs in | `403` on admin endpoints | Routed to read-only `/my-schedule` (P1-6); admin nav hidden |
 | NLP over 10/min | `429` | Cooldown notice, retry hint |
+| NLP AI provider down | `502` | Dedicated "AI Service Temporarily Unavailable" state (P2-7) |
 | Timetable infeasible | `status:"failed"` or `422` | Amber "unsatisfiable" explanation |
 | No substitute available | `409` | "No available substitutes" state |
 | Absent teacher missing | `404` | "Teacher not found" (see §4.5 id/teacher_id note) |
@@ -371,9 +443,28 @@ Please confirm each item; a ❌ means the frontend must adapt or the backend mus
 - [ ] For a hosted demo, what origin should CORS allow (currently `*`)?
 - [ ] Is there seed data (an admin user + teachers/cohorts) available for the demo, or should
       we script `POST /auth/register` + inserts?
+- [ ] Timetable in-progress `status` string is exactly `"processing"` (drives SWR stop condition P0-2).
+- [ ] NLP endpoint can surface a `502` (AI provider down) that we map to a dedicated state (P2-7).
+- [ ] Teacher Schedule data source (§5.5 P1-6): option **(a)** read-only shell, or **(b)** you
+      expose a teacher-scoped read endpoint — which one?
+
+### 13.1 Audit directives — implementation sign-off (rev. 2)
+
+Confirm the frontend will satisfy each (all are already committed in §5.5):
+
+- [ ] P0-1 SSE `EventSource` in `useRef` with cleanup closing socket + clearing reconnect timer.
+- [ ] P0-2 SWR timetable polling stops via `refreshInterval` terminal condition.
+- [ ] P0-3 No `dangerouslySetInnerHTML` for LLM output; sanitized rendering only.
+- [ ] P1-4 Determinate fake-progress overlay (0→90% hold) with constraint params, no generic spinner.
+- [ ] P1-5 Color-coded timetable matrix with consistent per-subject semantic colors.
+- [ ] P1-6 Non-admins routed to read-only Teacher Schedule (RBAC proof).
+- [ ] P2-7 NLP `502` → "AI Service Temporarily Unavailable".
+- [ ] P2-8 SSE connection indicator as fixed bottom-left pill.
+- [ ] Design/motion: strict light theme, iOS/Telegram feel, spring transitions, reduced-motion fallback.
 
 ---
 
-*End of master plan. On approval, Phase 1 begins with the app shell (Next.js setup, design
-system, auth/login, collapsible sidebar), then the three workflows in order, then the
-Phase 2 placeholder pages.*
+*End of master plan (rev. 2). On explicit approval, Phase 1 begins with the app shell (Next.js
+setup, design system, auth/login, collapsible sidebar), then the three workflows in order — each
+satisfying the §5.5 audit directives — the read-only Teacher Schedule (P1-6), then the Phase 2
+placeholder pages. No code will be written before that approval.*
