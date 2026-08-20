@@ -185,6 +185,49 @@ export interface StudentRecord {
   email: string
 }
 
+/* ── Knowledge / RAG — app/schemas/knowledge.py ─────────────────────── */
+
+export interface RAGCitation {
+  document_id: string
+  chunk_index: number
+  confidence_score: number
+  extracted_text: string
+}
+
+/** POST /knowledge/query */
+export interface RAGResponse {
+  query: string
+  answer: string
+  citations: RAGCitation[]
+}
+
+/** POST /knowledge/upload */
+export interface KnowledgeUploadResponse {
+  message: string
+  document_id: string
+  total_chunks: number
+}
+
+/* ── Document intake / OCR — app/schemas/documents.py ───────────────── */
+
+export interface DocumentConfidenceScores {
+  student_name: number
+  admission_number: number
+}
+
+export interface ExtractedDocument {
+  student_name: string
+  admission_number: string
+  grade_level: number
+  confidence_scores: DocumentConfidenceScores
+  requires_review: boolean
+}
+
+/** POST /documents/extract */
+export interface DocumentExtractResponse extends ExtractedDocument {
+  document_id: string
+}
+
 /* ── Transport — app/schemas/transport.py ───────────────────────────── */
 
 export interface VehicleSpec {
