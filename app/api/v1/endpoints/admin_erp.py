@@ -1,6 +1,10 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+from datetime import datetime, timezone
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from app.api.v1.deps import require_roles
+
+logger = logging.getLogger(__name__)
 from app.schemas.core_erp import (
     StudentCreate, StudentResponse,
     TeacherCreate, TeacherResponse,
@@ -87,3 +91,46 @@ async def list_classes(
 ):
     cursor = mongo_db.classes_collection.find({}, {"_id": 0})
     return await cursor.to_list(length=500)
+
+
+# ──────────────────── Attendance Analytics ────────────────────────
+
+@router.get("/attendance/summary")
+async def attendance_summary(
+    date: Optional[str] = Query(
+        default=None,
+        description="Date in YYYY-MM-DD format. Defaults to today (UTC).",
+    ),
+    current_user: dict = Depends(require_roles(["admin"])),
+):
+    """
+    Returns aggregate present/absent counts per student_id for a given date.
+    Uses a MongoDB $group aggregation pipeline — avoids loading all records into memory.
+    """
+    if not date:
+        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    pipeline = [
+        {"$match": {"date": date}},
+        {
+            "$group": {
+                "_id": "$student_id",
+                "total": {"$sum": 1},
+                "present": {
+                    "$sum": {"$cond": [{"$eq": ["$status", "present"]}, 1, 0]}
+                },
+                "absent": {
+                    "$sum": {"$cond": [{"$eq": ["$status", "absent"]}, 1, 0]}
+                },
+            }
+        },
+        {"$project": {"_id": 0, "student_id": "$_id", "total": 1, "present": 1, "absent": 1}},
+        {"$sort": {"student_id": 1}},
+    ]
+
+    results = await mongo_db.student_attendance_collection.aggregate(pipeline).to_list(length=1000)
+    return {
+        "date": date,
+        "total_students": len(results),
+        "records": results,
+    }

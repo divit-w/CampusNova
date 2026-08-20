@@ -1,4 +1,7 @@
+import logging
 from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException, Request
+
+logger = logging.getLogger(__name__)
 import base64
 from datetime import datetime, timezone
 import json
@@ -68,7 +71,7 @@ async def extract_attendance_from_image(base64_image: str) -> list:
         return [{"student_id": "S101", "status": "present"}, {"student_id": "S102", "status": "absent"}]
         
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:  # Step 7: explicit timeout
             response = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={
@@ -82,7 +85,7 @@ async def extract_attendance_from_image(base64_image: str) -> list:
                             "role": "user",
                             "content": [
                                 {
-                                    "type": "text", 
+                                    "type": "text",
                                     "text": "Extract attendance records from this image. Return ONLY a JSON array containing objects with 'student_id' and 'status' (strictly 'present' or 'absent'). Do not include markdown formatting or any other text."
                                 },
                                 {
@@ -99,15 +102,22 @@ async def extract_attendance_from_image(base64_image: str) -> list:
             response.raise_for_status()
             data = response.json()
             content = data["choices"][0]["message"]["content"].strip()
-            # Clean up potential markdown formatting (e.g. ```json ... ```)
-            if content.startswith("```json"):
-                content = content[7:-3].strip()
+            # Step 10: Robust markdown fence stripping — handles ```json, ```, ```JSON, etc.
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.lower().startswith("json"):
+                    content = content[4:]
+                content = content.strip()
             return json.loads(content)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Vision API failure: {str(e)}")
+        # Step 6: Log internally; never expose raw exception details to callers
+        logger.error(f"Vision API extract_attendance failure: {e}", exc_info=True)
+        raise HTTPException(status_code=502, detail="Vision API is temporarily unavailable")
 
 @router.post("/faculty-clock-in")
+@limiter.limit("10/minute")  # Step 11: rate limit to prevent brute-force coordinate spoofing
 async def faculty_clock_in(
+    request: Request,  # Required by slowapi for rate limiting
     latitude: float = Form(...),
     longitude: float = Form(...),
     file: UploadFile = File(...),
