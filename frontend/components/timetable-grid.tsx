@@ -8,7 +8,7 @@ import type { TimetablePayload, ScheduleEntry, TimetableResult } from "@/lib/typ
 import { getSubjectColor } from "@/lib/subject-color"
 import { spring } from "@/lib/motion"
 import { Badge } from "@/components/ui/badge"
-import { Select } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -123,13 +123,18 @@ export function TimetableGrid({
         </div>
         {payload.cohorts.length > 1 && (
           <div className="w-48">
-            <Select value={cohortFilter} onChange={(e) => setCohortFilter(e.target.value)} aria-label="Filter by cohort">
-              <option value="all">All cohorts</option>
-              {payload.cohorts.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
+            <Select value={cohortFilter} onValueChange={setCohortFilter}>
+              <SelectTrigger aria-label="Filter by cohort">
+                <SelectValue placeholder="Filter by cohort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All cohorts</SelectItem>
+                {payload.cohorts.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
         )}
