@@ -5,10 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 from app.core.limiter import limiter
 from app.core.config import settings
 from app.services.mongo_service import mongo_db
-from app.api.v1.endpoints import documents, auth, resources, attendance, erp, admin_erp, portals
+from app.api.v1.endpoints import documents, auth, resources, attendance, erp, admin_erp, portals, transport
 from app.api.v1 import timetable
 from app.api.v1 import alerts
 from app.api.v1 import knowledge
@@ -16,6 +18,41 @@ from app.api.v1 import knowledge
 # Setup logging
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
+
+# Maximum accepted request body size: 10 MB
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10,485,760 bytes
+
+
+class ContentSizeLimitMiddleware:
+    """
+    Pure ASGI middleware that rejects requests with a Content-Length header
+    exceeding MAX_UPLOAD_SIZE (10 MB) before the body is ever consumed.
+    This prevents memory exhaustion from oversized uploads (e.g., >10 MB base64 images).
+    Positioned before CORSMiddleware so it fires on every inbound request first.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http":
+            headers = dict(scope.get("headers", []))
+            content_length_raw = headers.get(b"content-length")
+            if content_length_raw is not None:
+                try:
+                    content_length = int(content_length_raw)
+                except ValueError:
+                    content_length = 0
+                if content_length > MAX_UPLOAD_SIZE:
+                    response = JSONResponse(
+                        status_code=413,
+                        content={
+                            "detail": f"Payload Too Large. Maximum allowed size is {MAX_UPLOAD_SIZE // (1024 * 1024)} MB."
+                        },
+                    )
+                    await response(scope, receive, send)
+                    return
+        await self.app(scope, receive, send)
 
 
 @asynccontextmanager
@@ -68,14 +105,15 @@ app = FastAPI(title="CampusNova API", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS — allow_credentials must be False when allow_origins=["*"] (CORS spec requirement)
-app.add_middleware(
-    CORSMiddleware,
+# ContentSizeLimitMiddleware — rejects payloads > 10 MB before body is consumed.
+# Must be added AFTER CORS so the middleware stack order (LIFO) places it outermost.
+app.add_middleware(CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,  # Must be False when allow_origins=["*"]; CORS spec rejects the combination
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(ContentSizeLimitMiddleware)
 
 
 @app.exception_handler(Exception)
@@ -102,3 +140,4 @@ app.include_router(attendance.router, prefix="/api/v1/attendance", tags=["Attend
 app.include_router(erp.router, prefix="/api/v1/erp", tags=["ERP"])
 app.include_router(admin_erp.router, prefix="/api/v1/admin", tags=["Admin ERP"])
 app.include_router(portals.router, prefix="/api/v1/portals", tags=["Portals"])
+app.include_router(transport.router, prefix="/api/v1/transport", tags=["Transport"])

@@ -35,10 +35,12 @@ async def create_student(
 
 @router.get("/students", response_model=List[StudentResponse])
 async def list_students(
+    skip: int = Query(0, ge=0, description="Number of records to skip (cursor offset)"),
+    limit: int = Query(50, ge=1, le=100, description="Maximum records to return (1–100)"),
     current_user: dict = Depends(require_roles(["admin"])),
 ):
-    cursor = mongo_db.students_collection.find({}, {"_id": 0})
-    return await cursor.to_list(length=500)
+    cursor = mongo_db.students_collection.find({}, {"_id": 0}).skip(skip).limit(limit)
+    return await cursor.to_list(length=limit)
 
 
 # ──────────────────────────── Teachers ────────────────────────────
@@ -61,10 +63,12 @@ async def create_teacher(
 
 @router.get("/teachers", response_model=List[TeacherResponse])
 async def list_teachers(
+    skip: int = Query(0, ge=0, description="Number of records to skip (cursor offset)"),
+    limit: int = Query(50, ge=1, le=100, description="Maximum records to return (1–100)"),
     current_user: dict = Depends(require_roles(["admin"])),
 ):
-    cursor = mongo_db.teachers_collection.find({}, {"_id": 0})
-    return await cursor.to_list(length=500)
+    cursor = mongo_db.teachers_collection.find({}, {"_id": 0}).skip(skip).limit(limit)
+    return await cursor.to_list(length=limit)
 
 
 # ──────────────────────────── Classes ─────────────────────────────
@@ -87,10 +91,12 @@ async def create_class(
 
 @router.get("/classes", response_model=List[ClassResponse])
 async def list_classes(
+    skip: int = Query(0, ge=0, description="Number of records to skip (cursor offset)"),
+    limit: int = Query(50, ge=1, le=100, description="Maximum records to return (1–100)"),
     current_user: dict = Depends(require_roles(["admin"])),
 ):
-    cursor = mongo_db.classes_collection.find({}, {"_id": 0})
-    return await cursor.to_list(length=500)
+    cursor = mongo_db.classes_collection.find({}, {"_id": 0}).skip(skip).limit(limit)
+    return await cursor.to_list(length=limit)
 
 
 # ──────────────────── Attendance Analytics ────────────────────────
