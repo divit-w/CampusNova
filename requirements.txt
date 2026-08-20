@@ -15,3 +15,5 @@ motor
 passlib[bcrypt]
 pyjwt
 email-validator
+scikit-learn
+numpy

@@ -9,5 +9,10 @@ class MongoManager:
         self.users_collection = self.db.get_collection("users")
         self.teachers_collection = self.db.get_collection("teachers")
         self.substitutions_collection = self.db.get_collection("substitutions")
+        self.faculty_attendance_collection = self.db.get_collection("faculty_attendance")
+        self.student_attendance_collection = self.db.get_collection("student_attendance")
+        self.students_collection = self.db.get_collection("students")
+        self.rooms_collection = self.db.get_collection("rooms")
+        self.subjects_collection = self.db.get_collection("subjects")
 
 mongo_db = MongoManager()
