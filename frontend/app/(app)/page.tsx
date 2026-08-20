@@ -6,6 +6,7 @@ import { ArrowRight, BellRing, CalendarRange, Radio, Repeat2, Sparkles } from "l
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { EmptyState, PageHeading } from "@/components/states"
+import { AttendanceKpiCards } from "@/components/attendance-kpi-cards"
 import { useAlerts } from "@/lib/alerts"
 import { useAuth } from "@/lib/auth"
 import { riseItem, staggerContainer } from "@/lib/motion"
@@ -52,6 +53,12 @@ export default function DashboardPage() {
         description="Your campus operations at a glance. Jump into a workflow or keep an eye on the live alert stream."
       />
 
+      {user?.role === "admin" && (
+        <div className="mb-6">
+          <AttendanceKpiCards />
+        </div>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         {/* Quick actions */}
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4 sm:grid-cols-2">
@@ -75,7 +82,7 @@ export default function DashboardPage() {
           ))}
         </motion.div>
 
-        {/* Live feed */}
+        {/* Alert Center — live stream + session history */}
         <Card className="flex flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-border p-5">
             <div className="flex items-center gap-2.5">
@@ -83,8 +90,8 @@ export default function DashboardPage() {
                 <Radio className="h-[18px] w-[18px]" />
               </span>
               <div>
-                <p className="text-sm font-semibold leading-tight">Live Alerts</p>
-                <p className="text-xs text-muted-foreground">Real-time event stream</p>
+                <p className="text-sm font-semibold leading-tight">Alert Center</p>
+                <p className="text-xs text-muted-foreground">Live stream &amp; recent history</p>
               </div>
             </div>
             <Badge variant={status === "connected" ? "live" : "warning"}>
