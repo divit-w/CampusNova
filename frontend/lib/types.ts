@@ -185,6 +185,15 @@ export interface StudentRecord {
   email: string
 }
 
+/** GET /portals/student/attendance-summary — app/schemas/attendance.py :: StudentAttendanceSummaryResponse */
+export interface StudentAttendanceSummaryResponse {
+  student_id: string
+  total: number
+  present: number
+  absent: number
+  percentage: number
+}
+
 /* ── Knowledge / RAG — app/schemas/knowledge.py ─────────────────────── */
 
 export interface RAGCitation {
@@ -259,4 +268,12 @@ export interface TransportOptimizationResponse {
   total_vehicles_used: number
   total_students_routed: number
   routes: OptimizedRoute[]
+}
+
+/** GET /transport/routes-summary — app/schemas/transport.py :: TransportRoutesSummaryResponse */
+export interface TransportRoutesSummaryResponse {
+  has_plan: boolean
+  active_routes: number
+  total_students_routed: number
+  generated_at: string | null
 }

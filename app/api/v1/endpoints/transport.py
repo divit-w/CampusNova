@@ -1,13 +1,36 @@
 import logging
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
-from app.schemas.transport import TransportOptimizationRequest, TransportOptimizationResponse
+from app.schemas.transport import (
+    TransportOptimizationRequest,
+    TransportOptimizationResponse,
+    TransportRoutesSummaryResponse,
+)
 from app.services.transport_service import TransportOptimizer
 from app.services.mongo_service import mongo_db
 from app.api.v1.deps import require_roles
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+@router.get("/routes-summary", response_model=TransportRoutesSummaryResponse)
+async def routes_summary(
+    current_user: dict = Depends(require_roles(["admin"])),
+):
+    """Returns KPI totals from the most recently generated & persisted route plan."""
+    latest = await mongo_db.transport_routes_collection.find_one(
+        {}, {"_id": 0}, sort=[("generated_at", -1)]
+    )
+    if not latest:
+        return TransportRoutesSummaryResponse(has_plan=False)
+
+    return TransportRoutesSummaryResponse(
+        has_plan=True,
+        active_routes=latest.get("total_vehicles_used", 0),
+        total_students_routed=latest.get("total_students_routed", 0),
+        generated_at=latest.get("generated_at"),
+    )
 
 
 @router.post("/optimize-routes", response_model=TransportOptimizationResponse)

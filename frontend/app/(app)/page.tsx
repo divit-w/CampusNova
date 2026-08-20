@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { EmptyState, PageHeading } from "@/components/states"
 import { AttendanceKpiCards } from "@/components/attendance-kpi-cards"
+import { TransportKpiCard } from "@/components/transport-kpi-card"
 import { useAlerts } from "@/lib/alerts"
 import { useAuth } from "@/lib/auth"
 import { riseItem, staggerContainer } from "@/lib/motion"
@@ -54,9 +55,17 @@ export default function DashboardPage() {
       />
 
       {user?.role === "admin" && (
-        <div className="mb-6">
-          <AttendanceKpiCards />
-        </div>
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate="show"
+          className="mb-6 grid gap-4 sm:grid-cols-4"
+        >
+          <div className="sm:col-span-3">
+            <AttendanceKpiCards />
+          </div>
+          <TransportKpiCard />
+        </motion.div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">

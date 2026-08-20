@@ -28,7 +28,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Substitutes", href: "/substitute", icon: Repeat2, roles: ["admin"] },
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck, roles: ["admin", "teacher"] },
   { label: "Transport", href: "/transport", icon: Bus, roles: ["admin"] },
-  { label: "My Schedule", href: "/my-schedule", icon: UserRound, roles: ["teacher", "student"] },
+  { label: "My Portal", href: "/portals/teacher", icon: UserRound, roles: ["teacher"] },
+  { label: "My Portal", href: "/portals/student", icon: UserRound, roles: ["student"] },
 ]
 
 export function navForRole(role: Role): NavItem[] {
@@ -37,5 +38,7 @@ export function navForRole(role: Role): NavItem[] {
 
 /** Landing route per role — non-admins are routed to their read-only portal (audit P1-6). */
 export function landingForRole(role: Role): string {
-  return role === "admin" ? "/" : "/my-schedule"
+  if (role === "admin") return "/"
+  if (role === "teacher") return "/portals/teacher"
+  return "/portals/student"
 }
