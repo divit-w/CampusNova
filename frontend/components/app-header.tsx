@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { ChevronDown, LogOut, Menu } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
+import { BrandLogo } from "@/components/brand-logo"
 import { NAV_ITEMS } from "@/lib/nav"
 import { useAuth } from "@/lib/auth"
 import { easeOutSoft } from "@/lib/motion"
@@ -52,6 +53,8 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
       >
         <Menu className="h-5 w-5" />
       </button>
+
+      <BrandLogo showWordmark={false} className="md:hidden" />
 
       <div className="min-w-0 flex-1">
         <AnimatePresence mode="wait">
