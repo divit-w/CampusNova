@@ -69,8 +69,9 @@ class TimetableSolver:
                                 )
                 model.Add(sum(vars_for_teacher) <= t.max_hours)
 
-        # Execute solver
+        # Execute solver — hard 10-second cap prevents infinite hangs on over-constrained inputs
         solver = cp_model.CpSolver()
+        solver.parameters.max_time_in_seconds = 10.0
         status = solver.Solve(model)
         
         if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
