@@ -136,13 +136,16 @@ async def query_knowledge(request: QueryRequest):
             logger.error(f"Secondary LLM also failed: {secondary_e}")
             raise HTTPException(status_code=500, detail="LLM service unavailable")
             
+    # Initialize content before the try block so the except path and the
+    # status check below never access an unbound variable (UnboundLocalError fix).
+    content: dict = {}
     try:
         content = json.loads(resp.choices[0].message.content)
         answer = content.get("answer", "")
     except Exception as e:
-        logger.error(f"Failed to parse LLM JSON response: {e}")
-        answer = "Error parsing response."
-        
+        logger.error(f"Failed to parse LLM JSON response: {e}. Raw content: {resp.choices[0].message.content!r}")
+        answer = "The system encountered an error processing the response. Please try again."
+
     if content.get("status") == "unsupported":
         citations = []
         
