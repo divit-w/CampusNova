@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+pymongo
+google-genai
+ortools
+chromadb
+pytest
+httpx
+pydantic-settings
+python-multipart
+openai
+pymupdf
+tenacity
+motor
