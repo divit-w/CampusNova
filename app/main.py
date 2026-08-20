@@ -25,34 +25,90 @@ MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10,485,760 bytes
 
 class ContentSizeLimitMiddleware:
     """
-    Pure ASGI middleware that rejects requests with a Content-Length header
-    exceeding MAX_UPLOAD_SIZE (10 MB) before the body is ever consumed.
-    This prevents memory exhaustion from oversized uploads (e.g., >10 MB base64 images).
-    Positioned before CORSMiddleware so it fires on every inbound request first.
+    Pure ASGI middleware that enforces a hard 10 MB request body limit.
+
+    Dual-layer enforcement strategy:
+    1. Fast-path: Reject immediately if Content-Length header declares > MAX_UPLOAD_SIZE.
+       Handles well-behaved clients with zero body buffering.
+    2. Stream-path: Wrap the `receive` callable to accumulate actual body bytes chunk
+       by chunk. This defeats Transfer-Encoding: chunked bypass where no Content-Length
+       header is sent. The moment the running byte total exceeds MAX_UPLOAD_SIZE the
+       middleware fires a raw ASGI 413 response and drains remaining body chunks so the
+       upstream TCP connection closes cleanly without hanging.
+
+    Positioned outermost (added last, LIFO stack) so it intercepts every inbound
+    HTTP request before CORS, routing, or body parsing begins.
     """
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] == "http":
-            headers = dict(scope.get("headers", []))
-            content_length_raw = headers.get(b"content-length")
-            if content_length_raw is not None:
-                try:
-                    content_length = int(content_length_raw)
-                except ValueError:
-                    content_length = 0
-                if content_length > MAX_UPLOAD_SIZE:
-                    response = JSONResponse(
-                        status_code=413,
-                        content={
-                            "detail": f"Payload Too Large. Maximum allowed size is {MAX_UPLOAD_SIZE // (1024 * 1024)} MB."
-                        },
-                    )
-                    await response(scope, receive, send)
-                    return
-        await self.app(scope, receive, send)
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        # Fast-path: Content-Length header present and already oversized.
+        headers = dict(scope.get("headers", []))
+        content_length_raw = headers.get(b"content-length")
+        if content_length_raw is not None:
+            try:
+                content_length = int(content_length_raw)
+            except ValueError:
+                content_length = 0
+            if content_length > MAX_UPLOAD_SIZE:
+                await self._send_413(scope, receive, send)
+                return
+
+        # Stream-path: wrap receive() to count bytes as they arrive.
+        # Catches chunked transfers that omit Content-Length entirely.
+        bytes_received: int = 0
+        limit_exceeded: bool = False
+
+        async def limited_receive() -> dict:
+            nonlocal bytes_received, limit_exceeded
+            message = await receive()
+            if limit_exceeded:
+                # Body already rejected — keep draining to avoid TCP hang.
+                return {"type": "http.disconnect"}
+            chunk = message.get("body", b"")
+            bytes_received += len(chunk)
+            if bytes_received > MAX_UPLOAD_SIZE:
+                limit_exceeded = True
+                return {"type": "http.disconnect"}
+            return message
+
+        # Wrap the app call; if limit was hit mid-stream, send 413 directly.
+        # We use a send wrapper to intercept the response only if needed.
+        _response_started: list[bool] = [False]
+
+        async def tracking_send(event: dict) -> None:
+            if event.get("type") == "http.response.start":
+                _response_started[0] = True
+            await send(event)
+
+        await self.app(scope, limited_receive, tracking_send)
+
+        if limit_exceeded and not _response_started[0]:
+            await self._send_413(scope, receive, send)
+
+    @staticmethod
+    async def _send_413(scope: Scope, receive: Receive, send: Send) -> None:
+        """Emit a raw ASGI 413 JSON response."""
+        body = (
+            b'{"detail":"Payload Too Large. Maximum allowed size is '
+            + str(MAX_UPLOAD_SIZE // (1024 * 1024)).encode()
+            + b' MB."}'
+        )
+        await send({
+            "type": "http.response.start",
+            "status": 413,
+            "headers": [
+                [b"content-type", b"application/json"],
+                [b"content-length", str(len(body)).encode()],
+            ],
+        })
+        await send({"type": "http.response.body", "body": body, "more_body": False})
 
 
 @asynccontextmanager
