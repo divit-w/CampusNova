@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.api.v1.endpoints import documents, auth, resources, attendance, erp
+from app.api.v1.endpoints import documents, auth, resources, attendance, erp, admin_erp, portals
 from app.api.v1 import timetable
 from app.api.v1 import alerts
 from app.api.v1 import knowledge
@@ -45,3 +45,5 @@ app.include_router(knowledge.router, prefix="/api/v1/knowledge", tags=["Knowledg
 app.include_router(resources.router, prefix="/api/v1/resources", tags=["Resources"])
 app.include_router(attendance.router, prefix="/api/v1/attendance", tags=["Attendance"])
 app.include_router(erp.router, prefix="/api/v1/erp", tags=["ERP"])
+app.include_router(admin_erp.router, prefix="/api/v1/admin", tags=["Admin ERP"])
+app.include_router(portals.router, prefix="/api/v1/portals", tags=["Portals"])
