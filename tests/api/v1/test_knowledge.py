@@ -49,7 +49,8 @@ def test_upload_file_too_large():
     files = {"file": ("large.pdf", large_content, "application/pdf")}
     response = client.post("/api/v1/knowledge/upload", files=files)
     assert response.status_code == 413
-    assert response.json()["detail"] == "Payload Too Large"
+    # ContentSizeLimitMiddleware intercepts before the endpoint; message includes size detail
+    assert "Payload Too Large" in response.json()["detail"]
 
 @patch("app.api.v1.knowledge.openai_client.embeddings.create", new_callable=AsyncMock)
 @patch("app.api.v1.knowledge.chroma_db.get_or_create_collection")

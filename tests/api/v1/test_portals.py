@@ -33,7 +33,7 @@ def student_token():
 @patch("app.api.v1.endpoints.admin_erp.mongo_db.students_collection.insert_one", new_callable=AsyncMock)
 async def test_admin_create_student_success(mock_insert, mock_find_dup, mock_find_user, async_client):
     mock_find_user.return_value = {"id": "admin1", "role": "admin"}
-    mock_find_dup.return_value = None   # No duplicate
+    mock_find_dup.return_value = None
 
     payload = {
         "student_id": "S001",
@@ -59,7 +59,7 @@ async def test_admin_create_student_success(mock_insert, mock_find_dup, mock_fin
 @patch("app.api.v1.endpoints.admin_erp.mongo_db.students_collection.find_one", new_callable=AsyncMock)
 async def test_admin_create_student_duplicate(mock_find_dup, mock_find_user, async_client):
     mock_find_user.return_value = {"id": "admin1", "role": "admin"}
-    mock_find_dup.return_value = {"student_id": "S001"}   # Duplicate exists
+    mock_find_dup.return_value = {"student_id": "S001"}
 
     payload = {
         "student_id": "S001",
@@ -76,16 +76,28 @@ async def test_admin_create_student_duplicate(mock_find_dup, mock_find_user, asy
     assert resp.status_code == 409
 
 
+def _make_paginated_cursor(records: list) -> MagicMock:
+    """
+    Build a mock Motor cursor that correctly chains .skip().limit()
+    and returns `records` from .to_list(). Motor cursors return `self`
+    from skip/limit so the chain is fluent.
+    """
+    mock_cursor = MagicMock()
+    mock_cursor.skip.return_value = mock_cursor
+    mock_cursor.limit.return_value = mock_cursor
+    mock_cursor.to_list = AsyncMock(return_value=records)
+    return mock_cursor
+
+
 @pytest.mark.asyncio
 @patch("app.api.v1.deps.mongo_db.users_collection.find_one", new_callable=AsyncMock)
 @patch("app.api.v1.endpoints.admin_erp.mongo_db.students_collection.find", new_callable=MagicMock)
 async def test_admin_list_students(mock_find, mock_find_user, async_client):
+    """Default pagination (skip=0, limit=50) returns bounded results."""
     mock_find_user.return_value = {"id": "admin1", "role": "admin"}
-    mock_cursor = MagicMock()
-    mock_cursor.to_list = AsyncMock(return_value=[
+    mock_find.return_value = _make_paginated_cursor([
         {"student_id": "S001", "full_name": "Alice Sharma", "grade": "10", "section": "A", "email": "alice@campus.edu"},
     ])
-    mock_find.return_value = mock_cursor
 
     resp = await async_client.get(
         "/api/v1/admin/students",
@@ -93,6 +105,50 @@ async def test_admin_list_students(mock_find, mock_find_user, async_client):
     )
     assert resp.status_code == 200
     assert len(resp.json()) == 1
+
+
+@pytest.mark.asyncio
+@patch("app.api.v1.deps.mongo_db.users_collection.find_one", new_callable=AsyncMock)
+@patch("app.api.v1.endpoints.admin_erp.mongo_db.students_collection.find", new_callable=MagicMock)
+async def test_admin_list_students_pagination(mock_find, mock_find_user, async_client):
+    """
+    Pagination parameters are forwarded to the Motor cursor.
+    skip=5&limit=2 → cursor.skip(5).limit(2) must be called,
+    and the response must contain exactly what the cursor returns.
+    """
+    mock_find_user.return_value = {"id": "admin1", "role": "admin"}
+    page_2_records = [
+        {"student_id": "S006", "full_name": "Student 6", "grade": "10", "section": "A", "email": "s6@campus.edu"},
+        {"student_id": "S007", "full_name": "Student 7", "grade": "10", "section": "A", "email": "s7@campus.edu"},
+    ]
+    mock_cursor = _make_paginated_cursor(page_2_records)
+    mock_find.return_value = mock_cursor
+
+    resp = await async_client.get(
+        "/api/v1/admin/students?skip=5&limit=2",
+        headers={"Authorization": f"Bearer {admin_token()}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 2
+    assert data[0]["student_id"] == "S006"
+    assert data[1]["student_id"] == "S007"
+    # Verify skip and limit were forwarded to the cursor
+    mock_cursor.skip.assert_called_once_with(5)
+    mock_cursor.limit.assert_called_once_with(2)
+
+
+@pytest.mark.asyncio
+@patch("app.api.v1.deps.mongo_db.users_collection.find_one", new_callable=AsyncMock)
+async def test_admin_list_students_limit_exceeds_max(mock_find_user, async_client):
+    """limit > 100 must be rejected with 422 Unprocessable Entity by Pydantic validation."""
+    mock_find_user.return_value = {"id": "admin1", "role": "admin"}
+
+    resp = await async_client.get(
+        "/api/v1/admin/students?limit=999",
+        headers={"Authorization": f"Bearer {admin_token()}"},
+    )
+    assert resp.status_code == 422
 
 
 # ──────────────────────────── Teacher Portal ──────────────────────
@@ -134,14 +190,10 @@ async def test_student_my_schedule(mock_classes_find, mock_student_find, mock_fi
     }
     mock_cursor = MagicMock()
     mock_cursor.to_list = AsyncMock(return_value=[
-        {
-            "class_id": "C101", "teacher_id": "teacher1", "subject": "Math",
-            "schedule_time": "09:00", "grade": "10", "section": "A"
-        },
-        {
-            "class_id": "C102", "teacher_id": "teacher2", "subject": "Science",
-            "schedule_time": "11:00", "grade": "10", "section": "A"
-        },
+        {"class_id": "C101", "teacher_id": "teacher1", "subject": "Math",
+         "schedule_time": "09:00", "grade": "10", "section": "A"},
+        {"class_id": "C102", "teacher_id": "teacher2", "subject": "Science",
+         "schedule_time": "11:00", "grade": "10", "section": "A"},
     ])
     mock_classes_find.return_value = mock_cursor
 
@@ -187,3 +239,33 @@ async def test_teacher_cannot_access_student_portal(mock_find_user, async_client
         headers={"Authorization": f"Bearer {teacher_token()}"},
     )
     assert resp.status_code == 403
+
+
+# ──────────────────────────── 413 Middleware ─────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_413_payload_too_large(async_client):
+    """
+    Requests declaring Content-Length > 10 MB must receive 413 Payload Too Large
+    before the body is parsed — the ContentSizeLimitMiddleware fires first.
+    """
+    oversized = 11 * 1024 * 1024  # 11 MB — exceeds 10 MB cap
+
+    resp = await async_client.post(
+        "/api/v1/attendance/faculty-clock-in",
+        content=b"x",  # Actual body is small — we declare a large Content-Length
+        headers={
+            "Content-Length": str(oversized),
+            "Content-Type": "application/octet-stream",
+        },
+    )
+    assert resp.status_code == 413
+    assert "Payload Too Large" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_normal_payload_not_rejected(async_client):
+    """Requests within the 10 MB limit must pass through the middleware unaffected."""
+    # Health check has no auth requirement; a small request should always pass the size middleware
+    resp = await async_client.get("/health")
+    assert resp.status_code == 200
