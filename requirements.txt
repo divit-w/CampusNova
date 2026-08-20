@@ -12,3 +12,6 @@ openai
 pymupdf
 tenacity
 motor
+passlib[bcrypt]
+pyjwt
+email-validator

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
-from app.api.v1.endpoints import documents
+from app.api.v1.endpoints import documents, auth, resources
 from app.api.v1 import timetable
 from app.api.v1 import alerts
 from app.api.v1 import knowledge
@@ -37,7 +37,9 @@ async def global_exception_handler(request: Request, exc: Exception):
 async def health_check():
     return {"status": "ok", "message": "CampusNova API is running."}
 
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["documents"])
 app.include_router(timetable.router, prefix="/api/v1/timetable", tags=["Timetable"])
 app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["Alerts"])
 app.include_router(knowledge.router, prefix="/api/v1/knowledge", tags=["Knowledge"])
+app.include_router(resources.router, prefix="/api/v1/resources", tags=["Resources"])

@@ -4,7 +4,10 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    MONGODB_URI: str
+    MONGO_URI: str = "mongodb://localhost:27017"
+    MONGO_DB_NAME: str = "campusnova"
+    SECRET_KEY: str = "super-secret-key"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     GEMINI_API_KEY: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None
     CHROMA_PERSIST_DIR: str = "./chroma_db"
