@@ -7,11 +7,13 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   AlertTriangle,
   CalendarRange,
-  FileJson,
+  
   Play,
   RotateCcw,
   Sparkles,
 } from "lucide-react"
+import { VisualConstraintForm } from "@/components/visual-constraint-form"
+
 
 import { api } from "@/lib/api"
 import type { TimetablePayload, TimetableStatusResponse } from "@/lib/types"
@@ -129,9 +131,7 @@ function InfeasibilityGuidanceCard({ errorDetail }: { errorDetail: string }) {
 }
 
 export default function TimetablePage() {
-  const [draft, setDraft] = useState<string>(() =>
-    JSON.stringify(SAMPLE_TIMETABLE_PAYLOAD, null, 2),
-  )
+  const [draft, setDraft] = useState<TimetablePayload>(SAMPLE_TIMETABLE_PAYLOAD)
   const [jsonError, setJsonError] = useState<string | null>(null)
   // The payload we actually submitted — used for id-to-name lookups in the grid.
   const [submitted, setSubmitted] = useState<TimetablePayload | null>(null)
@@ -156,7 +156,7 @@ export default function TimetablePage() {
   )
 
   function loadSample() {
-    setDraft(JSON.stringify(SAMPLE_TIMETABLE_PAYLOAD, null, 2))
+    setDraft(SAMPLE_TIMETABLE_PAYLOAD)
     setJsonError(null)
   }
 
@@ -168,14 +168,8 @@ export default function TimetablePage() {
 
   async function generate() {
     setSubmitError(null)
-    let parsed: TimetablePayload
-    try {
-      parsed = JSON.parse(draft)
-      setJsonError(null)
-    } catch {
-      setJsonError("Invalid JSON — check for a trailing comma or missing bracket.")
-      return
-    }
+    const parsed = draft
+    setJsonError(null)
     try {
       reset()
       const res = await api.post<{ job_id: string; status: string }>(
@@ -218,12 +212,12 @@ export default function TimetablePage() {
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,380px)_1fr]">
+      <div className="flex flex-col lg:flex-row gap-6 w-full h-full items-start">
         {/* Constraint input */}
-        <Card className="flex h-fit flex-col p-4">
+        <Card className="flex h-fit flex-col p-4 w-full lg:w-80 lg:min-w-[320px] lg:flex-shrink-0">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <FileJson aria-hidden="true" className="h-4 w-4 text-primary" />
+              <Sparkles aria-hidden="true" className="h-4 w-4 text-primary" />
               Constraints
             </div>
             <Button
@@ -232,18 +226,11 @@ export default function TimetablePage() {
               onClick={loadSample}
               className="gap-1.5 text-xs"
             >
-              <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
+              <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
               Load sample
             </Button>
           </div>
-          <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            spellCheck={false}
-            rows={20}
-            className="resize-none font-mono text-xs leading-relaxed"
-            aria-label="Timetable constraints JSON"
-          />
+          <VisualConstraintForm payload={draft} onChange={setDraft} />
           {jsonError && <p className="mt-2 text-xs text-destructive">{jsonError}</p>}
           <Button
             onClick={generate}
@@ -257,7 +244,7 @@ export default function TimetablePage() {
         </Card>
 
         {/* Output */}
-        <Card className="min-h-[420px] p-4">
+        <Card className="min-h-[420px] p-4 flex-1 min-w-0 overflow-hidden flex flex-col">
           <AnimatePresence mode="wait">
             {submitError ? (
               <motion.div
@@ -330,6 +317,7 @@ export default function TimetablePage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={spring.gentle}
+                className="flex flex-col flex-1 min-w-0 w-full"
               >
                 <TimetableGrid result={result} payload={submitted} />
               </motion.div>

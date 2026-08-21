@@ -24,8 +24,15 @@ const TILES = [
     tint: "bg-destructive/10",
   },
   {
+    key: "excused" as const,
+    label: "Excused / Leave",
+    icon: CalendarOff,
+    tone: "text-info",
+    tint: "bg-info/10",
+  },
+  {
     key: "unmarked" as const,
-    label: "On leave / unmarked",
+    label: "Unmarked",
     icon: CalendarOff,
     tone: "text-warning",
     tint: "bg-warning/15",
@@ -33,12 +40,12 @@ const TILES = [
 ]
 
 /** Real KPI row backed by /admin/attendance/summary + /admin/students. Admin-only endpoints. */
-export function AttendanceKpiCards({ compact = false }: { compact?: boolean }) {
-  const { data, isLoading } = useAttendanceSummary(true)
+export function AttendanceKpiCards({ compact = false, date }: { compact?: boolean; date?: string }) {
+  const { data, isLoading } = useAttendanceSummary(true, date)
 
   if (isLoading && !data) {
     return (
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         {TILES.map((t) => (
           <Card key={t.key} className={cn("p-5", compact && "p-4")}>
             <Skeleton className="h-9 w-9 rounded-xl" />
@@ -55,7 +62,7 @@ export function AttendanceKpiCards({ compact = false }: { compact?: boolean }) {
       variants={staggerContainer}
       initial="hidden"
       animate="show"
-      className="grid gap-4 sm:grid-cols-3"
+      className="grid gap-4 sm:grid-cols-4"
     >
       {TILES.map((tile) => {
         const value = data ? data[tile.key] : 0

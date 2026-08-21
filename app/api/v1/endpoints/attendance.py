@@ -280,3 +280,196 @@ async def edge_sync(
         "synced_records": synced_records,
         "dropped_records": dropped_records
     }
+
+from app.schemas.attendance import (
+    BulkAttendanceExtraction, 
+    BulkAttendanceResponse,
+    FinalizeBulkAttendanceRequest
+)
+from app.services.validation_engine import BulkAttendanceValidator
+from app.services.decision_engine import route_bulk_attendance
+import uuid
+
+async def extract_bulk_attendance_from_image(base64_image: str) -> dict:
+    if not settings.OPENROUTER_API_KEY:
+        # Fallback/mock for local execution if no API key is provided
+        return {
+            "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "class_section": "Mock Class",
+            "records": [
+                {"student_id": "S101", "student_name": "Test Student 1", "status": "present"},
+                {"student_id": "S102", "student_name": "Test Student 2", "status": "absent"}
+            ]
+        }
+        
+    try:
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            response = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "meta-llama/llama-3.2-11b-vision-instruct:free",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": "Extract the attendance table from this image. Identify the attendance table, student IDs/roll numbers, names, and attendance status. Rules: ✓ = present, X / cross = absent, L = leave. Do not invent students. Do not reorder rows unnecessarily. Preserve extracted values. Return ONLY a JSON object with keys: 'date' (YYYY-MM-DD), 'class_section' (string), and 'records' (array of objects with 'student_id', 'student_name', and 'status'). Status MUST be exactly 'present', 'absent', or 'leave'. Do not include markdown formatting."
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{base64_image}"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            )
+            response.raise_for_status()
+            data = response.json()
+            content = data["choices"][0]["message"]["content"].strip()
+            
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.lower().startswith("json"):
+                    content = content[4:]
+                content = content.strip()
+            
+            return json.loads(content)
+    except Exception as e:
+        logger.error(f"Vision API bulk extract failure: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=502, 
+            detail={"message": "Vision API is temporarily unavailable or failed to parse the document.", "code": "E011", "decision": "EXCEPTION", "severity": "CRITICAL"}
+        )
+
+@router.post("/process-bulk-register", response_model=BulkAttendanceResponse)
+@limiter.limit("5/minute")
+async def process_bulk_register(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(require_roles(["teacher", "admin"]))
+):
+    # 1. Validate file extension
+    valid_extensions = {".jpg", ".jpeg", ".png", ".pdf"}
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in valid_extensions:
+        raise HTTPException(
+            status_code=400, 
+            detail={"message": "Invalid file type. Only JPG, PNG, and PDF are supported.", "code": "E002", "decision": "EXCEPTION", "severity": "CRITICAL"}
+        )
+        
+    # 2. Convert to base64
+    try:
+        image_bytes = await file.read()
+        if len(image_bytes) < 5120:
+             raise ValueError("File too small or empty.")
+        b64_img = base64.b64encode(image_bytes).decode('utf-8')
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, 
+            detail={"message": "Failed to read image file.", "code": "E003", "decision": "EXCEPTION", "severity": "CRITICAL"}
+        )
+    
+    # 3. Vision API Extraction
+    extracted_data = await extract_bulk_attendance_from_image(b64_img)
+    
+    # 4. Pydantic Schema Validation
+    try:
+        extraction = BulkAttendanceExtraction(**extracted_data)
+    except Exception as e:
+        logger.error(f"Bulk extraction schema validation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail={"message": "AI returned malformed or unexpected data.", "code": "E011", "decision": "EXCEPTION", "severity": "CRITICAL"}
+        )
+
+    # 5. Row-Level Validation
+    try:
+        validator = BulkAttendanceValidator()
+        processed_rows = await validator.validate_batch(extraction)
+    except Exception as e:
+        logger.error(f"Bulk validation failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail={"message": "System validation encountered an error.", "code": "E011", "decision": "EXCEPTION", "severity": "CRITICAL"}
+        )
+
+    # 6. Overall Batch Decision
+    overall_decision, decision_reason = route_bulk_attendance(processed_rows)
+
+    # 7. Prepare Response (No DB insertion here!)
+    batch_id = str(uuid.uuid4())
+    total_rows = len(processed_rows)
+    valid_rows = sum(1 for r in processed_rows if r.decision == "VALID")
+    review_rows = sum(1 for r in processed_rows if r.decision == "REVIEW")
+    exception_rows = sum(1 for r in processed_rows if r.decision == "EXCEPTION")
+
+    return BulkAttendanceResponse(
+        batch_id=batch_id,
+        date=extraction.date,
+        class_section=extraction.class_section,
+        total_rows=total_rows,
+        valid_rows=valid_rows,
+        review_rows=review_rows,
+        exception_rows=exception_rows,
+        records=processed_rows,
+        overall_decision=overall_decision,
+        decision_reason=decision_reason
+    )
+
+@router.post("/finalize-bulk")
+async def finalize_bulk(
+    request: FinalizeBulkAttendanceRequest,
+    current_user: dict = Depends(require_roles(["teacher", "admin"]))
+):
+    operations = []
+    
+    for record in request.records:
+        if record.decision == "EXCEPTION":
+            continue
+            
+        operations.append(
+            UpdateOne(
+                {"student_id": record.student_id, "date": request.date},
+                {"$set": {
+                    "status": record.status,
+                    "teacher_id": current_user["id"],
+                    "updated_at": datetime.now(timezone.utc),
+                    "source": "bulk_ocr_batch",
+                    "batch_id": request.batch_id
+                }},
+                upsert=True
+            )
+        )
+        
+    if operations:
+        try:
+            await mongo_db.student_attendance_collection.bulk_write(operations)
+        except Exception as e:
+            logger.error(f"Failed bulk write during finalize: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Database write failed.")
+            
+    # Audit log
+    audit_doc = {
+        "batch_id": request.batch_id,
+        "date": request.date,
+        "class_section": request.class_section,
+        "processed_at": datetime.now(timezone.utc),
+        "approved_by": current_user["id"],
+        "records_written": len(operations),
+        "total_submitted": len(request.records)
+    }
+    await mongo_db.db.get_collection("bulk_attendance_audit").insert_one(audit_doc)
+
+    return {
+        "status": "success",
+        "message": f"Successfully finalized {len(operations)} attendance records.",
+        "batch_id": request.batch_id
+    }

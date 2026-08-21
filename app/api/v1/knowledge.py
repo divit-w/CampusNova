@@ -565,10 +565,30 @@ async def query_knowledge(request: QueryRequest):
     seen_parents = set()
 
     for hit in merged_hits:
-        meta   = hit["metadata"]
+        doc_id = hit["id"]
+        meta   = hit["metadata"] or {}
         child_doc = hit["document"]
         rrf    = hit["rrf_score"]
         confidence = min(rrf / _RRF_MAX, 1.0)
+
+        # Check if it's an OCR document (has document_category but no chunk_index)
+        if "document_category" in meta and "chunk_index" not in meta:
+            # It's an OCR doc. Fetch full fields from MongoDB to give LLM maximum context.
+            kb_doc = await mongo_db.knowledge_collection.find_one({"document_id": doc_id})
+            full_context = child_doc
+            if kb_doc and "extracted_fields" in kb_doc:
+                fields = "\n".join([f"- {f.get('key')}: {f.get('value')}" for f in kb_doc["extracted_fields"]])
+                full_context += f"\n\nExtracted Details:\n{fields}"
+                
+            context_chunks.append(f"Document Category: {meta.get('document_category')} (Doc: {doc_id}):\n{full_context}")
+            citations.append(RAGCitation(
+                document_id=doc_id,
+                source_file=f"Scanned {meta.get('document_category', 'Document')}",
+                chunk_index=0,
+                confidence_score=round(confidence, 4),
+                extracted_text=child_doc,
+            ))
+            continue
 
         # Hierarchical retrieval: feed the LLM the full parent context block,
         # but deduplicate so we don't inject the same 2000-char block multiple times.
@@ -578,16 +598,16 @@ async def query_knowledge(request: QueryRequest):
         if parent_id:
             if parent_id not in seen_parents:
                 seen_parents.add(parent_id)
-                context_chunks.append(f"Context Block (Doc: {meta['document_id']}):\n{parent_text}")
+                context_chunks.append(f"Context Block (Doc: {meta.get('document_id', doc_id)}):\n{parent_text}")
         else:
             # Fallback for old flat chunks
-            context_chunks.append(f"Chunk {meta['chunk_index']} (Doc: {meta['document_id']}):\n{child_doc}")
+            context_chunks.append(f"Chunk {meta.get('chunk_index', 0)} (Doc: {meta.get('document_id', doc_id)}):\n{child_doc}")
 
         # The citation highlights the specific child chunk that matched
         citations.append(RAGCitation(
-            document_id=meta["document_id"],
+            document_id=meta.get("document_id", doc_id),
             source_file=meta.get("filename", "Unknown Document"),
-            chunk_index=meta["chunk_index"],
+            chunk_index=meta.get("chunk_index", 0),
             confidence_score=round(confidence, 4),
             extracted_text=child_doc,
         ))

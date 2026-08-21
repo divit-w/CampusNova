@@ -4,14 +4,17 @@ import { useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertTriangle, CheckCircle2, File as FileIcon, ScanLine, UploadCloud, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { ErrorState } from "@/components/states"
 import { api } from "@/lib/api"
+<<<<<<< Updated upstream
 import type { ProcessSheetResponse, SyncBulkResponse, ExtractedAttendanceRecord } from "@/lib/types"
+=======
+import type { BulkAttendanceResponse } from "@/lib/types"
+>>>>>>> Stashed changes
 import { spring } from "@/lib/motion"
 import { cn } from "@/lib/utils"
+import { BulkReviewTable } from "./bulk-review-table"
 
 function SimpleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
@@ -40,17 +43,6 @@ const VALID_EXT = [".jpg", ".jpeg", ".png", ".pdf"]
  *  and provides an instant, friendly error before any network round-trip. */
 const MAX_FILE_BYTES = 5 * 1024 * 1024
 
-/**
- * Returns today's date in local timezone as YYYY-MM-DD.
- * Using Date.now() minus the UTC offset avoids the common off-by-one where
- * toISOString() returns the *previous* day for UTC+ timezones after midnight.
- */
-function todayIso() {
-  return new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 10)
-}
-
 function isValidFile(file: File) {
   const ext = `.${file.name.split(".").pop()?.toLowerCase()}`
   return VALID_EXT.includes(ext)
@@ -63,18 +55,22 @@ function formatBytes(bytes: number) {
 }
 
 /**
- * Drag-and-drop bulk sheet upload → POST /attendance/process-sheet.
+ * Drag-and-drop bulk sheet upload → POST /attendance/process-bulk-register.
  * The backend runs Vision OCR (OpenRouter) on the uploaded photo/PDF and
- * upserts per-student present/absent rows for the given date.
+ * returns row-level validation data.
  */
 export function VisionUploadZone() {
-  const [date, setDate] = useState(todayIso)
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
   const [loading, setLoading] = useState(false)
+<<<<<<< Updated upstream
   const [syncing, setSyncing] = useState(false)
   const [result, setResult] = useState<{ message: string } | null>(null)
   const [extractedRecords, setExtractedRecords] = useState<ExtractedAttendanceRecord[] | null>(null)
+=======
+  const [result, setResult] = useState<BulkAttendanceResponse | null>(null)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
+>>>>>>> Stashed changes
   const [error, setError] = useState<unknown>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -82,7 +78,11 @@ export function VisionUploadZone() {
   function pickFile(f: File | undefined | null) {
     if (!f) return
     setResult(null)
+<<<<<<< Updated upstream
     setExtractedRecords(null)
+=======
+    setSuccessMsg(null)
+>>>>>>> Stashed changes
     setError(null)
     setValidationError(null)
     if (!isValidFile(f)) {
@@ -102,7 +102,9 @@ export function VisionUploadZone() {
     if (!file || loading) return
     setLoading(true)
     setError(null)
+    setSuccessMsg(null)
     try {
+<<<<<<< Updated upstream
       const res = await api.processAttendanceSheet(file, date)
       if (res.records && res.records.length > 0) {
         setExtractedRecords(res.records)
@@ -110,6 +112,10 @@ export function VisionUploadZone() {
         setResult({ message: "No records found to extract." })
       }
       setFile(null)
+=======
+      const res = await api.processBulkRegister(file)
+      setResult(res)
+>>>>>>> Stashed changes
     } catch (err) {
       setError(err)
     } finally {
@@ -117,6 +123,7 @@ export function VisionUploadZone() {
     }
   }
 
+<<<<<<< Updated upstream
   async function sync() {
     if (!extractedRecords || syncing) return
     setSyncing(true)
@@ -135,6 +142,34 @@ export function VisionUploadZone() {
   function toggleStatus(id: string) {
     setExtractedRecords((prev) => 
       prev ? prev.map((r) => r.student_id === id ? { ...r, status: r.status === "present" ? "absent" : "present" } : r) : null
+=======
+  function handleCancel() {
+    setResult(null)
+    setFile(null)
+  }
+
+  function handleSuccess() {
+    setResult(null)
+    setFile(null)
+    setSuccessMsg("Attendance records finalized successfully.")
+    setTimeout(() => setSuccessMsg(null), 5000)
+  }
+
+  if (result) {
+    return (
+      <Card className="flex flex-col p-5 lg:col-span-2">
+        <div className="mb-4 flex items-center gap-2.5">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+            <ScanLine className="h-[18px] w-[18px]" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold leading-tight">Review Attendance</p>
+            <p className="text-xs text-muted-foreground">Verify extracted rows before committing to the database</p>
+          </div>
+        </div>
+        <BulkReviewTable data={result} onCancel={handleCancel} onSuccess={handleSuccess} />
+      </Card>
+>>>>>>> Stashed changes
     )
   }
 
@@ -148,11 +183,6 @@ export function VisionUploadZone() {
           <p className="text-sm font-semibold leading-tight">Vision OCR bulk sheet</p>
           <p className="text-xs text-muted-foreground">Photograph a paper register — we&apos;ll extract it</p>
         </div>
-      </div>
-
-      <div className="mt-4 space-y-1.5">
-        <Label htmlFor="sheet-date">Date</Label>
-        <Input id="sheet-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="max-w-[200px]" />
       </div>
 
       <div
@@ -199,7 +229,7 @@ export function VisionUploadZone() {
               </div>
               <button
                 type="button"
-                onClick={() => setFile(null)}
+                onClick={(e) => { e.stopPropagation(); setFile(null); }}
                 aria-label="Remove file"
                 className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground"
               >
@@ -224,6 +254,7 @@ export function VisionUploadZone() {
       </Button>
 
       <AnimatePresence>
+<<<<<<< Updated upstream
         {extractedRecords && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -263,6 +294,9 @@ export function VisionUploadZone() {
 
       <AnimatePresence>
         {result && (
+=======
+        {successMsg && (
+>>>>>>> Stashed changes
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -271,7 +305,7 @@ export function VisionUploadZone() {
             className="mt-4 flex items-center gap-2.5 rounded-xl border border-success/20 bg-success/[0.06] px-4 py-3"
           >
             <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
-            <p className="text-pretty text-sm leading-snug text-foreground">{result.message}</p>
+            <p className="text-pretty text-sm leading-snug text-foreground">{successMsg}</p>
           </motion.div>
         )}
       </AnimatePresence>

@@ -82,17 +82,25 @@ export function TimetableGrid({
 
   const [cohortFilter, setCohortFilter] = useState<string>(payload.cohorts[0]?.id ?? "all")
 
+  const [schedule, setSchedule] = useState<ScheduleEntry[]>(result.schedule)
+  const [editingEntry, setEditingEntry] = useState<{ entry: ScheduleEntry; index: number } | null>(null)
+
+  // Sync state if result changes from a new solver run
+  useMemo(() => {
+    setSchedule(result.schedule)
+  }, [result.schedule])
+
   const cells = useMemo(() => {
-    const map = new Map<string, ScheduleEntry[]>()
-    for (const entry of result.schedule) {
-      if (cohortFilter !== "all" && entry.cohort_id !== cohortFilter) continue
+    const map = new Map<string, Array<{ entry: ScheduleEntry; index: number }>>()
+    schedule.forEach((entry, index) => {
+      if (cohortFilter !== "all" && entry.cohort_id !== cohortFilter) return
       const key = `${entry.day}-${entry.period}`
       const list = map.get(key) ?? []
-      list.push(entry)
+      list.push({ entry, index })
       map.set(key, list)
-    }
+    })
     return map
-  }, [result.schedule, cohortFilter])
+  }, [schedule, cohortFilter])
 
   const days = Array.from({ length: payload.days_per_week }, (_, i) => i)
   const periods = Array.from({ length: payload.periods_per_day }, (_, i) => i)
@@ -106,7 +114,7 @@ export function TimetableGrid({
   }, [result.schedule, cohortFilter])
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 w-full min-w-0 flex flex-col">
       <Explainability result={result} payload={payload} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -140,7 +148,7 @@ export function TimetableGrid({
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-xl border border-border w-full">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-muted/60">
@@ -168,16 +176,17 @@ export function TimetableGrid({
                   return (
                     <td key={d} className="p-1.5 align-top">
                       <div className="flex flex-col gap-1.5">
-                        {entries.map((entry, i) => {
+                        {entries.map(({ entry, index: realIndex }, i) => {
                           const color = getSubjectColor(entry.subject_id)
                           return (
-                            <motion.div
+                            <motion.button
                               key={`${entry.subject_id}-${entry.teacher_id}-${i}`}
+                              onClick={() => setEditingEntry({ entry, index: realIndex })}
                               initial={{ opacity: 0, scale: 0.96 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ ...spring.gentle, delay: (d + p) * 0.015 }}
                               className={cn(
-                                "rounded-lg border px-2.5 py-1.5 text-left",
+                                "w-full cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all rounded-lg border px-2.5 py-1.5 text-left",
                                 color.bg,
                                 color.border,
                                 color.text,
@@ -193,7 +202,7 @@ export function TimetableGrid({
                                 Room {entry.room_id}
                                 {cohortFilter === "all" && ` · ${lookups.cohort[entry.cohort_id] ?? entry.cohort_id}`}
                               </p>
-                            </motion.div>
+                            </motion.button>
                           )
                         })}
                       </div>
@@ -205,6 +214,76 @@ export function TimetableGrid({
           </tbody>
         </table>
       </div>
+
+      {editingEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-xl border bg-card p-5 shadow-lg">
+            <h3 className="mb-4 text-lg font-semibold">Reassign Slot</h3>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold">Teacher</label>
+                <Select
+                  value={editingEntry.entry.teacher_id}
+                  onValueChange={(val) => setEditingEntry({ ...editingEntry, entry: { ...editingEntry.entry, teacher_id: val } })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select teacher" /></SelectTrigger>
+                  <SelectContent>
+                    {payload.teachers.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold">Subject</label>
+                <Select
+                  value={editingEntry.entry.subject_id}
+                  onValueChange={(val) => setEditingEntry({ ...editingEntry, entry: { ...editingEntry.entry, subject_id: val } })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select subject" /></SelectTrigger>
+                  <SelectContent>
+                    {payload.subjects.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold">Room</label>
+                <Select
+                  value={editingEntry.entry.room_id}
+                  onValueChange={(val) => setEditingEntry({ ...editingEntry, entry: { ...editingEntry.entry, room_id: val } })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
+                  <SelectContent>
+                    {payload.rooms.map(r => (
+                      <SelectItem key={r.id} value={r.id}>{r.id}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => setEditingEntry(null)} className="rounded-lg px-4 py-2 text-sm font-medium hover:bg-muted">Cancel</button>
+              <button 
+                onClick={() => {
+                  const next = [...schedule]
+                  next[editingEntry.index] = editingEntry.entry
+                  setSchedule(next)
+                  setEditingEntry(null)
+                }} 
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
