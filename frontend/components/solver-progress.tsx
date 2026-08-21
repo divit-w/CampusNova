@@ -61,7 +61,7 @@ export function SolverProgress({
       <motion.span
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary"
+        className="grid h-14 w-14 place-items-center rounded-xl bg-primary/10 text-primary"
       >
         <motion.span
           animate={{ rotate: 360 }}

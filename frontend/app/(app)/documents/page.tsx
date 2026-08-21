@@ -14,11 +14,11 @@ import type { DocumentExtractResponse } from "@/lib/types"
 // user actually drops a file in, so they're split out of the initial bundle.
 const DocumentPreviewPane = dynamic(
   () => import("@/components/documents/document-preview-pane").then((m) => m.DocumentPreviewPane),
-  { loading: () => <Skeleton className="h-[420px] w-full rounded-2xl" /> },
+  { loading: () => <Skeleton className="h-[420px] w-full rounded-xl" /> },
 )
 const OcrReviewForm = dynamic(
   () => import("@/components/documents/ocr-review-form").then((m) => m.OcrReviewForm),
-  { loading: () => <Skeleton className="h-[420px] w-full rounded-2xl" /> },
+  { loading: () => <Skeleton className="h-[420px] w-full rounded-xl" /> },
 )
 
 const VALID_TYPES = ["image/jpeg", "image/png", "image/webp"]
@@ -133,7 +133,7 @@ export default function DocumentsPage() {
 
       <AnimatePresence>
         {error ? (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-4 rounded-2xl glass-surface">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-4 rounded-xl glass-surface">
             <ErrorState error={error} onRetry={extract} />
           </motion.div>
         ) : null}

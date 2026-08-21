@@ -140,7 +140,7 @@ export function TimetableGrid({
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-border">
+      <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-muted/60">

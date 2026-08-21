@@ -94,7 +94,7 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.16 }}
-              className="glass-surface absolute right-0 mt-2 w-60 overflow-hidden rounded-2xl p-2 shadow-soft-lg"
+              className="glass-surface absolute right-0 mt-2 w-60 overflow-hidden rounded-xl p-2 shadow-soft-lg"
             >
               <div className="flex items-center gap-3 rounded-xl p-2.5">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-live text-xs font-semibold text-primary-foreground">

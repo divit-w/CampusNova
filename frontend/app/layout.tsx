@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           toastOptions={{
             classNames: {
               toast:
-                "!rounded-2xl !border !border-border !bg-white/60 !backdrop-blur-xl !text-card-foreground !shadow-soft-lg !font-sans",
+                "!rounded-xl !border !border-border !bg-white/60 !backdrop-blur-xl !text-card-foreground !shadow-soft-lg !font-sans",
               title: "!text-sm !font-medium",
               description: "!text-xs !text-muted-foreground",
             },

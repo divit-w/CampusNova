@@ -66,7 +66,7 @@ export default function KnowledgePage() {
         actions={<KnowledgeUploadControl />}
       />
 
-      <div className="flex h-[calc(100vh-15rem)] min-h-[420px] flex-col overflow-hidden rounded-2xl glass-surface shadow-soft">
+      <div className="flex h-[calc(100vh-15rem)] min-h-[420px] flex-col overflow-hidden rounded-xl glass-surface shadow-soft">
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-6 sm:px-6">
           {messages.length === 0 && !loading && (
             <motion.div
@@ -75,7 +75,7 @@ export default function KnowledgePage() {
               transition={spring.gentle}
               className="flex h-full flex-col items-center justify-center gap-5 py-6 text-center"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary to-live text-primary-foreground shadow-soft">
+              <span className="grid h-14 w-14 place-items-center rounded-xl bg-gradient-to-br from-primary to-live text-primary-foreground shadow-soft">
                 <Sparkles className="h-6 w-6" />
               </span>
               <div>
