@@ -61,12 +61,12 @@ export default function KnowledgePage() {
     <div className="mx-auto flex h-full max-w-4xl flex-col">
       <PageHeading
         icon={<MessagesSquare className="h-5 w-5" />}
-        title="Knowledge Base"
+        title={<span className="text-gradient-brand">Knowledge Base</span>}
         description="Ask questions in plain English — answers are grounded in your indexed school documents with source citations."
         actions={<KnowledgeUploadControl />}
       />
 
-      <div className="flex h-[calc(100vh-15rem)] min-h-[420px] flex-col overflow-hidden rounded-2xl border border-border glass-surface shadow-soft">
+      <div className="flex h-[calc(100vh-15rem)] min-h-[420px] flex-col overflow-hidden rounded-2xl glass-surface shadow-soft">
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-6 sm:px-6">
           {messages.length === 0 && !loading && (
             <motion.div
@@ -89,7 +89,7 @@ export default function KnowledgePage() {
                   <button
                     key={prompt}
                     onClick={() => useExample(prompt)}
-                    className="rounded-xl border border-border bg-secondary/40 px-3.5 py-2.5 text-left text-xs font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-primary/[0.04]"
+                    className="glass-surface rounded-xl px-3.5 py-2.5 text-left text-xs font-medium text-foreground transition-all duration-300 ease-spring hover:-translate-y-[1px] hover:scale-[1.01] hover:border-primary/40 hover:bg-white/80 hover:shadow-soft"
                   >
                     {prompt}
                   </button>

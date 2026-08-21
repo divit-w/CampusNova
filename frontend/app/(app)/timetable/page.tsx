@@ -87,7 +87,7 @@ export default function TimetablePage() {
     <div className="space-y-6">
       <PageHeading
         icon={<CalendarRange className="h-5 w-5" />}
-        title="Timetable Workspace"
+        title={<span className="text-gradient-brand">Timetable Workspace</span>}
         description="Define your constraints, then let the CP-SAT solver build a conflict-free schedule. Results explain how well the constraints were satisfied."
         actions={
           submitted ? (

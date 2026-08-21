@@ -42,7 +42,7 @@ export default function TransportPage() {
   return (
     <div>
       <PageHeading
-        title="Smart Transport Optimizer"
+        title={<span className="text-gradient-brand">Smart Transport Optimizer</span>}
         description="Cluster student pickups with KMeans and sequence each route with a Nearest-Neighbor TSP heuristic — build your fleet and optimize to see the plan."
       />
 
@@ -53,7 +53,7 @@ export default function TransportPage() {
           <AnimatePresence mode="wait">
             {error ? (
               <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div className="rounded-2xl border border-border glass-surface">
+                <div className="rounded-2xl glass-surface">
                   <ErrorState error={error} onRetry={() => optimize(vehicles)} />
                 </div>
               </motion.div>

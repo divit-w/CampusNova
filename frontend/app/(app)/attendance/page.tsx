@@ -14,7 +14,7 @@ export default function AttendancePage() {
   return (
     <div>
       <PageHeading
-        title="Attendance"
+        title={<span className="text-gradient-brand">Attendance</span>}
         description="Mark faculty and student attendance with Vision OCR bulk sheets or a geofenced clock-in, then track daily coverage at a glance."
       />
 
