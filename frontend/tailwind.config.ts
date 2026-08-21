@@ -90,6 +90,11 @@ const config: Config = {
         "glow-primary": "0 10px 32px -8px rgb(29 78 216 / 0.35), 0 2px 8px -2px rgb(29 78 216 / 0.18)",
         "glow-cyan": "0 10px 32px -8px rgb(6 182 212 / 0.35), 0 2px 8px -2px rgb(6 182 212 / 0.18)",
         "glow-success": "0 10px 32px -8px rgb(16 185 129 / 0.3), 0 2px 8px -2px rgb(16 185 129 / 0.16)",
+        /* button depth — top-edge highlight + soft resting shadow, gradient buttons swap to a colored glow on hover */
+        "inset-soft": "inset 0 1px 0 0 rgb(255 255 255 / 0.25), 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 4px 16px -4px rgb(15 23 42 / 0.08)",
+        "glow-btn-primary": "inset 0 1px 0 0 rgb(255 255 255 / 0.3), 0 12px 28px -6px rgb(29 78 216 / 0.45), 0 4px 14px -2px rgb(6 182 212 / 0.3)",
+        "glow-btn-success": "inset 0 1px 0 0 rgb(255 255 255 / 0.3), 0 12px 28px -6px rgb(16 185 129 / 0.4)",
+        "glow-btn-destructive": "inset 0 1px 0 0 rgb(255 255 255 / 0.3), 0 12px 28px -6px rgb(220 38 38 / 0.4)",
       },
       keyframes: {
         "fade-in": {

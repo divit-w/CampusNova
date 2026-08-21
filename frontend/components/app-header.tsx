@@ -45,7 +45,7 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
     : "U"
 
   return (
-    <header className="glass-surface sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 px-4 md:px-6">
+    <header className="glass-surface sticky top-0 z-30 flex h-16 items-center gap-3 px-4 md:px-6">
       <button
         onClick={onOpenMobile}
         className="grid h-10 w-10 place-items-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
