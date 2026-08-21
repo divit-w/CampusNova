@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 import fitz
 from datetime import datetime, timezone
@@ -15,74 +16,137 @@ client = AsyncOpenAI(
 
 class IngestionService:
     def extract_text(self, file_bytes: bytes) -> str:
-        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        """Parse PDF bytes with PyMuPDF and extract all page text.
+
+        Raises:
+            ValueError: if fitz considers the bytes structurally invalid.
+        """
+        try:
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+        except Exception as exc:
+            raise ValueError(f"PyMuPDF could not open the PDF stream: {exc}") from exc
+
         text = ""
         for page in doc:
             text += page.get_text()
         return text
 
-    def chunk_text(self, text: str, chunk_size: int = 1000, overlap: int = 200) -> list[str]:
-        chunks = []
-        start = 0
+    def hierarchical_chunk_text(self, text: str, parent_size: int = 2000, parent_overlap: int = 200, child_size: int = 400, child_overlap: int = 50) -> list[dict]:
+        """Split text hierarchically into large parent chunks and smaller child chunks.
+        
+        Returns a list of dicts containing the child text, its parent text, and routing IDs.
+        Embedding the child text provides precision, while returning the parent text to the
+        LLM provides full semantic context.
+        """
+        chunks_data = []
+        p_start = 0
         text_length = len(text)
+        chunk_index = 0
+        p_idx = 0
         
         if text_length == 0:
-            return chunks
+            return chunks_data
             
-        while start < text_length:
-            end = start + chunk_size
-            chunks.append(text[start:end])
-            if end >= text_length:
+        while p_start < text_length:
+            p_end = p_start + parent_size
+            parent_text = text[p_start:p_end]
+            
+            c_start = 0
+            p_length = len(parent_text)
+            
+            while c_start < p_length:
+                c_end = c_start + child_size
+                child_text = parent_text[c_start:c_end]
+                
+                chunks_data.append({
+                    "child_text": child_text,
+                    "parent_text": parent_text,
+                    "parent_id": f"p{p_idx}",
+                    "chunk_index": chunk_index
+                })
+                chunk_index += 1
+                
+                if c_end >= p_length:
+                    break
+                c_start += (child_size - child_overlap)
+                
+            if p_end >= text_length:
                 break
-            start += (chunk_size - overlap)
+            p_start += (parent_size - parent_overlap)
+            p_idx += 1
             
-        return chunks
+        return chunks_data
 
-    async def process_and_store_pdf(self, file_bytes: bytes, filename: str, file_hash: str):
-        text = self.extract_text(file_bytes)
-        chunks = self.chunk_text(text)
-        
-        document_id = str(uuid.uuid4())
-        
-        if not chunks:
-            return {"document_id": document_id, "total_chunks": 0}
-        
-        response = await client.embeddings.create(
-            input=chunks,
-            model="nomic-ai/nomic-embed-text"
-        )
-        
-        embeddings = [data.embedding for data in response.data]
-        
-        collection = chroma_db.get_or_create_collection("student_documents")
-        
-        ids = [f"{document_id}_{i}" for i in range(len(chunks))]
-        metadatas = [
-            {
-                "document_id": document_id, 
-                "chunk_index": i, 
-                "filename": filename
-            } 
-            for i in range(len(chunks))
-        ]
-        
-        collection.add(
-            ids=ids,
-            embeddings=embeddings,
-            documents=chunks,
-            metadatas=metadatas
-        )
-        
-        record = KnowledgeDocument(
-            id=document_id,
-            title=filename,
-            upload_date=datetime.now(timezone.utc),
-            total_chunks=len(chunks),
-            file_hash=file_hash
-        )
-        
-        await mongo_db.knowledge_collection.insert_one(record.model_dump())
-        
-        return {"document_id": document_id, "total_chunks": len(chunks)}
+    async def process_and_store_pdf(self, file_bytes: bytes, filename: str, file_hash: str, document_id: str):
+        try:
+            text = self.extract_text(file_bytes)
+            chunks = self.hierarchical_chunk_text(text)
+            
+            if not chunks:
+                await mongo_db.knowledge_collection.update_one(
+                    {"id": document_id},
+                    {"$set": {"indexing_status": "completed", "total_chunks": 0}}
+                )
+                return {"document_id": document_id, "total_chunks": 0}
+            
+            # ── Batched embedding ──────────────────────────────────────────────
+            EMBED_BATCH_SIZE = 20
+            EMBED_TIMEOUT_SECS = 30
+    
+            async def embed_batch(batch: list[dict]) -> list:
+                batch_texts = [d["child_text"] for d in batch]
+                resp = await asyncio.wait_for(
+                    client.embeddings.create(input=batch_texts, model=settings.EMBEDDING_MODEL),
+                    timeout=EMBED_TIMEOUT_SECS,
+                )
+                return [d.embedding for d in resp.data]
+    
+            batches = [chunks[i : i + EMBED_BATCH_SIZE] for i in range(0, len(chunks), EMBED_BATCH_SIZE)]
+            batch_results = await asyncio.gather(*[embed_batch(b) for b in batches])
+            embeddings = [vec for batch in batch_results for vec in batch]
+            
+            collection = chroma_db.get_or_create_collection("student_documents")
+            
+            ids = [f"{document_id}_{d['chunk_index']}" for d in chunks]
+            metadatas = [
+                {
+                    "document_id": document_id, 
+                    "chunk_index": d["chunk_index"], 
+                    "filename": filename,
+                    "parent_id": f"{document_id}_{d['parent_id']}",
+                    "parent_text": d["parent_text"]
+                } 
+                for d in chunks
+            ]
+            
+            child_documents = [d["child_text"] for d in chunks]
+            
+            collection.add(
+                ids=ids,
+                embeddings=embeddings,
+                documents=child_documents,
+                metadatas=metadatas
+            )
+            
+            await mongo_db.knowledge_collection.update_one(
+                {"id": document_id},
+                {"$set": {"indexing_status": "completed", "total_chunks": len(chunks)}}
+            )
+            return {"document_id": document_id, "total_chunks": len(chunks)}
+            
+        except ValueError as exc:
+            # PyMuPDF structural failures
+            await mongo_db.knowledge_collection.update_one(
+                {"id": document_id},
+                {"$set": {"indexing_status": "failed", "error_message": f"Invalid or unparsable PDF file format: {exc}"}}
+            )
+            raise
+        except Exception as exc:
+            # Embedding, ChromaDB, or Mongo failures
+            await mongo_db.knowledge_collection.update_one(
+                {"id": document_id},
+                {"$set": {"indexing_status": "failed", "error_message": str(exc)}}
+            )
+            raise
 
 ingestion_service = IngestionService()

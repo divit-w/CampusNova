@@ -12,6 +12,7 @@ import {
   Trash2,
   Upload,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { api, type KnowledgeDocumentSummary } from "@/lib/api"
 import { PageHeading, ErrorState, EmptyState } from "@/components/states"
@@ -99,7 +100,10 @@ export default function AdminDocumentsPage() {
   } = useSWR<KnowledgeDocumentSummary[]>(
     "/knowledge/documents",
     () => api.listKnowledgeDocuments(0, 200),
-    { revalidateOnFocus: false },
+    { 
+      revalidateOnFocus: false,
+      refreshInterval: (data) => (data?.some(d => d.indexing_status === "processing") ? 3000 : 0)
+    },
   )
 
   async function confirmDelete() {
@@ -109,6 +113,7 @@ export default function AdminDocumentsPage() {
     try {
       await api.deleteKnowledgeDocument(deleting)
       setDeleting(null)
+      toast.success("Document deleted successfully")
       mutate()
     } catch (err: any) {
       setDeleteError(err?.detail ?? "Failed to delete document. Please try again.")
@@ -175,6 +180,7 @@ export default function AdminDocumentsPage() {
                   <thead>
                     <tr className="border-b border-border text-left text-xs font-medium uppercase text-muted-foreground">
                       <th className="px-4 py-3">Title / Document ID</th>
+                      <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Chunks</th>
                       <th className="px-4 py-3">SHA-256 Hash</th>
                       <th className="px-4 py-3">Uploaded</th>
@@ -197,6 +203,29 @@ export default function AdminDocumentsPage() {
                               <p className="font-mono text-xs text-muted-foreground">{doc.id}</p>
                             </div>
                           </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {doc.indexing_status === "completed" ? (
+                            <Badge variant="default" className="bg-success/15 text-success hover:bg-success/25 font-medium border-0">
+                              Completed
+                            </Badge>
+                          ) : doc.indexing_status === "failed" ? (
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="destructive" className="w-fit font-medium border-0">
+                                Failed
+                              </Badge>
+                              {doc.error_message && (
+                                <span className="text-[10px] text-destructive max-w-[150px] truncate" title={doc.error_message}>
+                                  {doc.error_message}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <Badge variant="secondary" className="font-medium border-0 text-muted-foreground flex w-fit items-center gap-1.5">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Processing
+                            </Badge>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <Badge variant="outline" className="font-mono text-xs">

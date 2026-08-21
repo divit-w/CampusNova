@@ -5,20 +5,24 @@ from app.main import app
 
 client = TestClient(app)
 
+@patch("app.api.v1.knowledge.mongo_db.knowledge_collection.insert_one", new_callable=AsyncMock)
 @patch("app.api.v1.knowledge.mongo_db.knowledge_collection.find_one", new_callable=AsyncMock)
 @patch("app.api.v1.knowledge.ingestion_service.process_and_store_pdf", new_callable=AsyncMock)
-def test_upload_pdf_success(mock_process, mock_find_one):
+def test_upload_pdf_success(mock_process, mock_find_one, mock_insert):
     mock_find_one.return_value = None
-    mock_process.return_value = {"document_id": "test-doc-123", "total_chunks": 3}
+    # We no longer expect process_and_store_pdf to return anything synchronously to the route
     
     files = {"file": ("test.pdf", b"%PDF-1.4 mock pdf data", "application/pdf")}
     response = client.post("/api/v1/knowledge/upload", files=files)
     
-    assert response.status_code == 200
+    assert response.status_code == 202
     data = response.json()
     assert "document_id" in data
-    assert data["document_id"] == "test-doc-123"
-    assert data["total_chunks"] == 3
+    assert data["status"] == "processing"
+    
+    # Assert background task was called with the correct bytes
+    mock_process.assert_called_once()
+    mock_insert.assert_called_once()
 
 @patch("app.api.v1.knowledge.mongo_db.knowledge_collection.find_one", new_callable=AsyncMock)
 def test_upload_duplicate_hash_conflict(mock_find_one):
@@ -64,7 +68,8 @@ def test_query_knowledge_success(mock_call_llm, mock_get_collection, mock_embedd
     mock_collection.query.return_value = {
         "distances": [[0.2, 0.3]],
         "documents": [["Chunk A text", "Chunk B text"]],
-        "metadatas": [[{"document_id": "doc1", "chunk_index": 0}, {"document_id": "doc1", "chunk_index": 1}]]
+        "metadatas": [[{"document_id": "doc1", "chunk_index": 0}, {"document_id": "doc1", "chunk_index": 1}]],
+        "ids": [["id1", "id2"]]
     }
     mock_get_collection.return_value = mock_collection
     
@@ -129,3 +134,77 @@ def test_knowledge_rag_unparseable_json_fallback(mock_call_llm, mock_get_collect
     assert isinstance(data["answer"], str)
     assert len(data["answer"]) > 0
     assert "query" in data
+
+
+@patch("app.api.v1.knowledge.mongo_db.knowledge_collection.find")
+def test_list_knowledge_documents(mock_find):
+    from datetime import datetime, timezone
+    mock_cursor = MagicMock()
+    mock_cursor.skip.return_value = mock_cursor
+    mock_cursor.limit.return_value = mock_cursor
+    mock_cursor.to_list = AsyncMock(return_value=[
+        {
+            "id": "doc123",
+            "title": "Handbook.pdf",
+            "total_chunks": 42,
+            "sha256_hash": "deadbeef",
+            "upload_date": datetime(2025, 1, 1, tzinfo=timezone.utc)
+        }
+    ])
+    mock_find.return_value = mock_cursor
+
+    from app.api.v1.deps import get_current_user
+    app.dependency_overrides[get_current_user] = lambda: {"id": "test", "role": "admin"}
+    
+    response = client.get("/api/v1/knowledge/documents")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["id"] == "doc123"
+    
+    app.dependency_overrides.clear()
+
+
+@patch("app.api.v1.knowledge.mongo_db.knowledge_collection.find_one", new_callable=AsyncMock)
+@patch("app.api.v1.knowledge.mongo_db.knowledge_collection.delete_one", new_callable=AsyncMock)
+@patch("app.api.v1.knowledge.chroma_db.get_or_create_collection")
+def test_delete_knowledge_document_success(mock_get_collection, mock_delete, mock_find_one):
+    mock_find_one.return_value = {"id": "doc123", "title": "Handbook.pdf"}
+    
+    mock_collection = MagicMock()
+    mock_collection.get.return_value = {"ids": ["doc123_0", "doc123_1"]}
+    mock_get_collection.return_value = mock_collection
+    
+    from app.api.v1.deps import get_current_user
+    app.dependency_overrides[get_current_user] = lambda: {"id": "test", "role": "admin"}
+    
+    response = client.delete("/api/v1/knowledge/documents/doc123")
+    assert response.status_code == 204
+    mock_collection.delete.assert_called_once_with(ids=["doc123_0", "doc123_1"])
+    mock_delete.assert_called_once_with({"id": "doc123"})
+    
+    app.dependency_overrides.clear()
+
+
+@patch("app.api.v1.knowledge.mongo_db.knowledge_collection.find_one", new_callable=AsyncMock)
+def test_get_document_status(mock_find_one):
+    mock_find_one.return_value = {
+        "id": "doc123",
+        "title": "Handbook.pdf",
+        "indexing_status": "completed",
+        "total_chunks": 5,
+        "error_message": None
+    }
+    
+    from app.api.v1.deps import get_current_user
+    app.dependency_overrides[get_current_user] = lambda: {"id": "test", "role": "admin"}
+    
+    response = client.get("/api/v1/knowledge/documents/doc123/status")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "doc123"
+    assert data["indexing_status"] == "completed"
+    assert data["total_chunks"] == 5
+    
+    app.dependency_overrides.clear()
+

@@ -20,6 +20,10 @@ export function KnowledgeUploadControl() {
       setStatus({ kind: "error", message: "Only PDF files can be indexed." })
       return
     }
+    if (file.size > 15 * 1024 * 1024) {
+      setStatus({ kind: "error", message: "File exceeds the 15MB limit." })
+      return
+    }
     setStatus({ kind: "loading" })
     try {
       const res = await api.uploadKnowledgeDocument(file)
