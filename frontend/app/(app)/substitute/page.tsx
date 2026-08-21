@@ -63,7 +63,10 @@ export default function SubstitutePage() {
             <div className="space-y-1.5">
               <Label htmlFor="teacher">Absent teacher ID</Label>
               <div className="relative">
-                <UserX className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <UserX
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                />
                 <Input
                   id="teacher"
                   value={absentTeacherId}
@@ -78,7 +81,10 @@ export default function SubstitutePage() {
             <div className="space-y-1.5">
               <Label htmlFor="date">Date</Label>
               <div className="relative">
-                <CalendarClock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <CalendarClock
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                />
                 <Input
                   id="date"
                   type="date"
@@ -91,29 +97,35 @@ export default function SubstitutePage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Time slot</Label>
-              <div className="flex flex-wrap gap-2">
+              <Label id="time-slot-label">Time slot</Label>
+              <div role="group" aria-labelledby="time-slot-label" className="flex flex-wrap gap-2">
                 {TIME_SLOTS.map((slot) => (
                   <button
                     key={slot}
                     type="button"
                     onClick={() => setTimeSlot(slot)}
+                    aria-pressed={timeSlot === slot}
                     className={
-                      "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all " +
+                      "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
                       (timeSlot === slot
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border bg-card text-muted-foreground hover:border-primary/40")
                     }
                   >
-                    <Clock className="h-3.5 w-3.5" />
+                    <Clock aria-hidden="true" className="h-3.5 w-3.5" />
                     {slot}
                   </button>
                 ))}
               </div>
             </div>
 
-            <Button type="submit" disabled={loading || !absentTeacherId.trim()} className="w-full gap-1.5">
-              <Wand2 className="h-4 w-4" />
+            <Button
+              type="submit"
+              disabled={loading || !absentTeacherId.trim()}
+              aria-busy={loading}
+              className="w-full gap-1.5"
+            >
+              <Wand2 aria-hidden="true" className="h-4 w-4" />
               {loading ? "Finding substitute…" : "Resolve conflict"}
             </Button>
           </form>
@@ -129,9 +141,11 @@ export default function SubstitutePage() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground"
+                role="status"
+                aria-live="polite"
               >
                 <span className="flex items-center gap-2">
-                  <Radio className="h-4 w-4 animate-pulse text-primary" />
+                  <Radio aria-hidden="true" className="h-4 w-4 animate-pulse text-primary" />
                   Ranking available substitutes…
                 </span>
               </motion.div>
@@ -155,15 +169,17 @@ export default function SubstitutePage() {
                 exit={{ opacity: 0 }}
                 transition={spring.gentle}
                 className="flex-1"
+                role="status"
+                aria-live="polite"
               >
                 <Card className="flex h-full flex-col justify-center gap-4 border-resolved/30 bg-resolved/[0.04] p-6">
                   <div className="flex items-center gap-2">
                     <Badge variant="success" className="gap-1.5">
-                      <UserCheck className="h-3.5 w-3.5" />
+                      <UserCheck aria-hidden="true" className="h-3.5 w-3.5" />
                       Assigned
                     </Badge>
                     <Badge variant="live" className="gap-1.5">
-                      <Radio className="h-3.5 w-3.5" />
+                      <Radio aria-hidden="true" className="h-3.5 w-3.5" />
                       Broadcast live
                     </Badge>
                   </div>
@@ -186,7 +202,7 @@ export default function SubstitutePage() {
                 exit={{ opacity: 0 }}
                 className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-6 py-10 text-center"
               >
-                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-secondary text-muted-foreground">
+                <span aria-hidden="true" className="grid h-12 w-12 place-items-center rounded-2xl bg-secondary text-muted-foreground">
                   <UserCheck className="h-5 w-5" />
                 </span>
                 <p className="max-w-xs text-pretty text-sm text-muted-foreground">

@@ -1,14 +1,22 @@
 "use client"
 
 import { useState } from "react"
+import dynamic from "next/dynamic"
 import { AnimatePresence, motion } from "framer-motion"
 import { PageHeading, ErrorState } from "@/components/states"
 import { FleetBuilderForm } from "@/components/transport/fleet-builder-form"
-import { RouteMapPreview } from "@/components/transport/route-map-preview"
 import { TransportMetrics } from "@/components/transport/transport-metrics"
+import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/api"
 import { spring } from "@/lib/motion"
 import type { TransportOptimizationResponse, VehicleSpec } from "@/lib/types"
+
+// SVG canvas with per-stop framer-motion entrance animations — deferred out
+// of the initial bundle since it's secondary to the fleet builder form.
+const RouteMapPreview = dynamic(
+  () => import("@/components/transport/route-map-preview").then((m) => m.RouteMapPreview),
+  { loading: () => <Skeleton className="h-full min-h-[420px] w-full rounded-2xl" /> },
+)
 
 export default function TransportPage() {
   const [vehicles, setVehicles] = useState<VehicleSpec[]>([])
