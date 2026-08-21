@@ -54,7 +54,10 @@ function NavLinks({
                 className="absolute inset-0 rounded-xl bg-primary/10"
               />
             )}
-            <Icon className={cn("relative z-10 h-[18px] w-[18px] shrink-0", active && "text-primary")} />
+            <Icon
+              aria-hidden="true"
+              className={cn("relative z-10 h-[18px] w-[18px] shrink-0", active && "text-primary")}
+            />
             {!collapsed && (
               <span className="relative z-10 flex-1 truncate">{item.label}</span>
             )}
@@ -87,10 +90,10 @@ export function AppSidebar({ role, collapsed, onToggleCollapsed, mobileOpen, onC
           {mobile && (
             <button
               onClick={onCloseMobile}
-              className="grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="grid h-9 w-9 place-items-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-label="Close menu"
             >
-              <X className="h-5 w-5" />
+              <X aria-hidden="true" className="h-5 w-5" />
             </button>
           )}
         </div>
@@ -112,12 +115,17 @@ export function AppSidebar({ role, collapsed, onToggleCollapsed, mobileOpen, onC
             <button
               onClick={onToggleCollapsed}
               className={cn(
-                "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 isCollapsed && "justify-center px-0",
               )}
               aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-pressed={isCollapsed}
             >
-              {isCollapsed ? <PanelLeftOpen className="h-[18px] w-[18px]" /> : <PanelLeftClose className="h-[18px] w-[18px]" />}
+              {isCollapsed ? (
+                <PanelLeftOpen aria-hidden="true" className="h-[18px] w-[18px]" />
+              ) : (
+                <PanelLeftClose aria-hidden="true" className="h-[18px] w-[18px]" />
+              )}
               {!isCollapsed && <span>Collapse</span>}
             </button>
           </div>

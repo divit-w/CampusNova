@@ -53,9 +53,14 @@ export function ChatComposer({
           disabled={!value.trim() || loading}
           size="icon"
           aria-label="Send message"
+          aria-busy={loading}
           className={cn("mb-0.5 mr-0.5 h-9 w-9 shrink-0 rounded-full")}
         >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+          {loading ? (
+            <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+          ) : (
+            <ArrowUp aria-hidden="true" className="h-4 w-4" />
+          )}
         </Button>
       </div>
       <p className="mt-1.5 px-1 text-center text-[11px] text-muted-foreground/70">

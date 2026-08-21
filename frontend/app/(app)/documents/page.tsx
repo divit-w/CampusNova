@@ -1,13 +1,25 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import dynamic from "next/dynamic"
 import { AnimatePresence, motion } from "framer-motion"
 import { ScanSearch } from "lucide-react"
-import { DocumentPreviewPane } from "@/components/documents/document-preview-pane"
-import { OcrReviewForm } from "@/components/documents/ocr-review-form"
 import { ErrorState, PageHeading } from "@/components/states"
+import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/api"
 import type { DocumentExtractResponse } from "@/lib/types"
+
+// Both panes depend on the picked file / OCR result and do real work (image
+// preview rendering, field-by-field review UI) that isn't needed until a
+// user actually drops a file in, so they're split out of the initial bundle.
+const DocumentPreviewPane = dynamic(
+  () => import("@/components/documents/document-preview-pane").then((m) => m.DocumentPreviewPane),
+  { loading: () => <Skeleton className="h-[420px] w-full rounded-2xl" /> },
+)
+const OcrReviewForm = dynamic(
+  () => import("@/components/documents/ocr-review-form").then((m) => m.OcrReviewForm),
+  { loading: () => <Skeleton className="h-[420px] w-full rounded-2xl" /> },
+)
 
 const VALID_TYPES = ["image/jpeg", "image/png", "image/webp"]
 

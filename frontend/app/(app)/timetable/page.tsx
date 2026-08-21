@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import dynamic from "next/dynamic"
 import useSWR from "swr"
 import { motion, AnimatePresence } from "framer-motion"
 import { CalendarRange, Sparkles, Play, FileJson, RotateCcw } from "lucide-react"
@@ -10,11 +11,21 @@ import type { TimetablePayload, TimetableStatusResponse } from "@/lib/types"
 import { SAMPLE_TIMETABLE_PAYLOAD } from "@/lib/sample-timetable"
 import { spring } from "@/lib/motion"
 import { PageHeading, ErrorState, EmptyState } from "@/components/states"
-import { SolverProgress } from "@/components/solver-progress"
-import { TimetableGrid } from "@/components/timetable-grid"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+
+// Both are only ever rendered after a solve is triggered, so they're split out
+// of the initial bundle. SolverProgress owns its own rAF animation loop and
+// TimetableGrid does non-trivial memoized grid computation — neither is
+// needed for the idle/empty state most visits start on.
+const SolverProgress = dynamic(() => import("@/components/solver-progress").then((m) => m.SolverProgress), {
+  loading: () => <Skeleton className="h-64 w-full rounded-2xl" />,
+})
+const TimetableGrid = dynamic(() => import("@/components/timetable-grid").then((m) => m.TimetableGrid), {
+  loading: () => <Skeleton className="h-64 w-full rounded-2xl" />,
+})
 
 export default function TimetablePage() {
   const [draft, setDraft] = useState<string>(() => JSON.stringify(SAMPLE_TIMETABLE_PAYLOAD, null, 2))
@@ -81,7 +92,7 @@ export default function TimetablePage() {
         actions={
           submitted ? (
             <Button variant="outline" size="sm" onClick={reset} className="gap-1.5">
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw aria-hidden="true" className="h-4 w-4" />
               New run
             </Button>
           ) : undefined
@@ -93,11 +104,11 @@ export default function TimetablePage() {
         <Card className="flex h-fit flex-col p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-semibold">
-              <FileJson className="h-4 w-4 text-primary" />
+              <FileJson aria-hidden="true" className="h-4 w-4 text-primary" />
               Constraints
             </div>
             <Button variant="ghost" size="sm" onClick={loadSample} className="gap-1.5 text-xs">
-              <Sparkles className="h-3.5 w-3.5" />
+              <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
               Load sample
             </Button>
           </div>
@@ -110,8 +121,13 @@ export default function TimetablePage() {
             aria-label="Timetable constraints JSON"
           />
           {jsonError && <p className="mt-2 text-xs text-destructive">{jsonError}</p>}
-          <Button onClick={generate} disabled={isProcessing} className="mt-3 gap-1.5">
-            <Play className="h-4 w-4" />
+          <Button
+            onClick={generate}
+            disabled={isProcessing}
+            aria-busy={isProcessing}
+            className="mt-3 gap-1.5"
+          >
+            <Play aria-hidden="true" className="h-4 w-4" />
             {isProcessing ? "Solving…" : "Generate timetable"}
           </Button>
         </Card>
