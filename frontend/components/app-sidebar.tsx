@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
-import { PanelLeftClose, PanelLeftOpen, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, X } from "lucide-react"
 import { BrandLogo } from "@/components/brand-logo"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { navForRole, type NavItem } from "@/lib/nav"
@@ -110,27 +110,6 @@ export function AppSidebar({ role, collapsed, onToggleCollapsed, mobileOpen, onC
         <div className="flex-1 overflow-y-auto pb-4">
           <NavLinks items={items} collapsed={isCollapsed} onNavigate={mobile ? onCloseMobile : undefined} />
         </div>
-
-        {!mobile && (
-          <div className="border-t border-border p-3">
-            <button
-              onClick={onToggleCollapsed}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                isCollapsed && "justify-center px-0",
-              )}
-              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              aria-pressed={isCollapsed}
-            >
-              {isCollapsed ? (
-                <PanelLeftOpen aria-hidden="true" className="h-[18px] w-[18px]" />
-              ) : (
-                <PanelLeftClose aria-hidden="true" className="h-[18px] w-[18px]" />
-              )}
-              {!isCollapsed && <span>Collapse</span>}
-            </button>
-          </div>
-        )}
       </div>
     )
   }
@@ -138,14 +117,25 @@ export function AppSidebar({ role, collapsed, onToggleCollapsed, mobileOpen, onC
   return (
     <TooltipProvider>
       {/* Desktop rail */}
-      <motion.aside
-        initial={false}
-        animate={{ width: collapsed ? 76 : 264 }}
-        transition={spring}
-        className="glass-surface sticky top-0 hidden h-screen shrink-0 md:block"
-      >
-        {inner(false)}
-      </motion.aside>
+      <div className="sticky top-0 hidden h-screen shrink-0 md:block z-40">
+        <motion.aside
+          initial={false}
+          animate={{ width: collapsed ? 76 : 264 }}
+          transition={spring}
+          className="glass-surface relative h-full overflow-hidden"
+        >
+          {inner(false)}
+        </motion.aside>
+        
+        {/* Premium floating toggle */}
+        <button
+          onClick={onToggleCollapsed}
+          className="absolute -right-3.5 top-6 z-50 grid h-7 w-7 place-items-center rounded-lg border border-white/20 bg-white/20 text-muted-foreground backdrop-blur-md transition-all hover:bg-white/40 hover:text-foreground shadow-soft"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
+      </div>
 
       {/* Mobile slide-over */}
       <AnimatePresence>
