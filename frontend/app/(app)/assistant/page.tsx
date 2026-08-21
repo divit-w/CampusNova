@@ -115,7 +115,7 @@ export default function AssistantPage() {
                 <button
                   key={prompt}
                   onClick={() => useExample(prompt)}
-                  className="group flex items-center gap-2.5 rounded-xl border border-border bg-card px-4 py-3 text-left text-sm text-foreground transition-all hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-soft"
+                  className="group flex items-center gap-2.5 rounded-xl border border-border glass-surface px-4 py-3 text-left text-sm text-foreground transition-all duration-300 ease-spring hover:-translate-y-[1px] hover:scale-[1.01] hover:border-primary/40 hover:bg-white/80 hover:shadow-soft"
                 >
                   <Zap className="h-4 w-4 shrink-0 text-primary/70 transition-transform group-hover:scale-110" />
                   <span className="text-pretty">{prompt}</span>
@@ -134,7 +134,7 @@ export default function AssistantPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-8 text-sm text-muted-foreground"
+            className="flex items-center gap-3 rounded-2xl border border-border glass-surface px-5 py-8 text-sm text-muted-foreground"
           >
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             Interpreting your request and querying the ERP…

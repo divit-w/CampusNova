@@ -109,7 +109,7 @@ export default function SubstitutePage() {
                       "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
                       (timeSlot === slot
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-border bg-card text-muted-foreground hover:border-primary/40")
+                        : "border-border glass-surface text-muted-foreground hover:border-primary/40")
                     }
                   >
                     <Clock aria-hidden="true" className="h-3.5 w-3.5" />
@@ -140,7 +140,7 @@ export default function SubstitutePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground"
+                className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border glass-surface px-6 py-10 text-center text-sm text-muted-foreground"
                 role="status"
                 aria-live="polite"
               >
