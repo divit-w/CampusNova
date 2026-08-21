@@ -4,3 +4,10 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .chroma/
+.env.local
+.env.*
+node_modules/
+.next/
+.venv/
+venv/
+__pycache__/
