@@ -55,6 +55,7 @@ async function extractDetail(res: Response): Promise<string> {
     const data = await res.json()
     if (typeof data?.detail === "string") return data.detail
     if (Array.isArray(data?.detail)) return data.detail.map((d: any) => d?.msg).filter(Boolean).join("; ")
+    if (typeof data?.detail === "object" && typeof data?.detail?.message === "string") return data.detail.message
     if (typeof data?.message === "string") return data.message
     return res.statusText || "Request failed"
   } catch {
@@ -195,14 +196,16 @@ export const api = {
 
   /* Attendance analytics (admin) */
   async attendanceSummary(date?: string): Promise<AttendanceSummaryResponse> {
-    const qs = date ? `?date=${encodeURIComponent(date)}` : ""
+    const tzOffset = new Date().getTimezoneOffset()
+    const qs = date ? `?date=${encodeURIComponent(date)}&tz_offset_minutes=${tzOffset}` : `?tz_offset_minutes=${tzOffset}`
     return request<AttendanceSummaryResponse>(`/admin/attendance/summary${qs}`)
   },
   async roster(limit = 100): Promise<StudentRecord[]> {
     return request<StudentRecord[]>(`/admin/students?limit=${limit}`)
   },
   async dashboardSummary(): Promise<DashboardSummaryResponse> {
-    return request<DashboardSummaryResponse>("/admin/dashboard-summary")
+    const tzOffset = new Date().getTimezoneOffset()
+    return request<DashboardSummaryResponse>(`/admin/dashboard-summary?tz_offset_minutes=${tzOffset}`)
   },
 
   /* Transport (admin) */
@@ -267,6 +270,8 @@ export interface KnowledgeDocumentSummary {
   total_chunks: number
   file_hash: string
   upload_date: string
+  indexing_status: string
+  error_message: string | null
 }
 
 export interface AdminStudentRecord {

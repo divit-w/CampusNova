@@ -14,11 +14,14 @@ class KnowledgeDocument(BaseModel):
     title: str
     upload_date: datetime
     total_chunks: int
-    file_hash: str
+    sha256_hash: str
+    indexing_status: str = "completed"
+    error_message: str | None = None
 
 class RAGCitation(BaseModel):
     model_config = ConfigDict(extra="forbid")
     document_id: str
+    source_file: str
     chunk_index: int
     confidence_score: float
     extracted_text: str
