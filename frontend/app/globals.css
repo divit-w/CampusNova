@@ -69,12 +69,11 @@
     @apply border-border;
   }
   html {
-    @apply bg-surface;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
   body {
-    @apply bg-surface text-foreground;
+    @apply text-foreground;
     /* Faint blue/cyan aurora glow in the top corners — kills the "pure white
        app shell" flatness while staying subtle enough for glass cards to sit
        on top without hurting contrast. Fixed so it never scrolls or tiles. */

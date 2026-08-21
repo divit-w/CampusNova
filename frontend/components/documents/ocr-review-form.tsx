@@ -31,7 +31,7 @@ export function OcrReviewForm({
 }) {
   if (!data) {
     return (
-      <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-4 shadow-soft sm:p-5">
+      <div className="flex h-full flex-col rounded-2xl border border-border glass-surface p-4 shadow-soft sm:p-5">
         <div className="flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
             <FileSearch className="h-[18px] w-[18px]" />
@@ -53,7 +53,7 @@ export function OcrReviewForm({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={spring}
-      className="flex h-full flex-col rounded-2xl border border-border bg-card p-4 shadow-soft sm:p-5"
+      className="flex h-full flex-col rounded-2xl border border-border glass-surface p-4 shadow-soft sm:p-5"
     >
       <div className="flex items-center gap-2.5">
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">

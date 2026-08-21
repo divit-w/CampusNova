@@ -160,7 +160,7 @@ export function TimetableGrid({
           <tbody>
             {periods.map((p) => (
               <tr key={p} className="border-t border-border/70">
-                <td className="sticky left-0 z-10 bg-card px-3 py-2 text-sm font-medium text-muted-foreground">
+                <td className="sticky left-0 z-10 glass-surface px-3 py-2 text-sm font-medium text-muted-foreground">
                   P{p + 1}
                 </td>
                 {days.map((d) => {
