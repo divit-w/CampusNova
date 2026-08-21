@@ -245,7 +245,7 @@ export default function AdminDocumentsPage() {
                               )}
                             </div>
                           ) : (
-                            <Badge variant="secondary" className="font-medium border-0 text-muted-foreground flex w-fit items-center gap-1.5">
+                            <Badge variant="neutral" className="font-medium border-0 text-muted-foreground flex w-fit items-center gap-1.5">
                               <Loader2 className="h-3 w-3 animate-spin" />
                               Processing
                             </Badge>

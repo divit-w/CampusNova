@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Bus, Plus, Trash2, Wand2 } from "lucide-react"
+import { Bus, Loader2, Plus, Trash2, Wand2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -170,8 +170,17 @@ export function FleetBuilderForm({
         {formError && <p className="mt-3 text-sm text-destructive">{formError}</p>}
 
         <Button type="submit" disabled={loading} className="mt-4 gap-1.5">
-          <Wand2 className="h-4 w-4" />
-          {loading ? "Optimizing routes…" : "Optimize routes"}
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Optimizing routes…
+            </>
+          ) : (
+            <>
+              <Wand2 className="h-4 w-4" />
+              Optimize routes
+            </>
+          )}
         </Button>
       </form>
     </Card>
