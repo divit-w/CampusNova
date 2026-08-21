@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.schemas.resources import ResourceConflictRequest
+from app.schemas.resources import ResourceConflictRequest, ResolveConflictResponse
 from app.api.v1.deps import require_roles
 from app.services.mongo_service import mongo_db
 from app.api.v1.alerts import alert_manager
@@ -13,7 +13,7 @@ async def simulate_rag_policy_check():
     return "Policy check passed: Substitute assignment authorized."
 
 
-@router.post("/resolve-conflict")
+@router.post("/resolve-conflict", response_model=ResolveConflictResponse)
 async def resolve_conflict(
     request: ResourceConflictRequest,
     current_user: dict = Depends(require_roles(["admin"]))
@@ -75,5 +75,7 @@ async def resolve_conflict(
     return {
         "status": "success",
         "substitute_teacher_id": substitute["id"],
-        "message": alert_message["message"]
+        "message": alert_message["message"],
+        "subject_compatibility_score": substitute.get("subject_compatibility_score", 0.75),
+        "suitability_score": substitute.get("suitability_score", 1.0),
     }

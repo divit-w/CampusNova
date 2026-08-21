@@ -16,8 +16,15 @@ import { Badge } from "@/components/ui/badge"
 
 const TIME_SLOTS = ["P1", "P2", "P3", "P4", "P5", "P6"]
 
+/**
+ * Returns today's date in local timezone as YYYY-MM-DD.
+ * Using Date.now() minus the UTC offset avoids the common off-by-one where
+ * toISOString() returns the *previous* day for UTC+ timezones after midnight.
+ */
 function todayIso() {
-  return new Date().toISOString().slice(0, 10)
+  return new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10)
 }
 
 export default function SubstitutePage() {
@@ -173,7 +180,7 @@ export default function SubstitutePage() {
                 aria-live="polite"
               >
                 <Card className="flex h-full flex-col justify-center gap-4 border-resolved/30 bg-resolved/[0.04] p-6">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="success" className="gap-1.5">
                       <UserCheck aria-hidden="true" className="h-3.5 w-3.5" />
                       Assigned
@@ -181,6 +188,15 @@ export default function SubstitutePage() {
                     <Badge variant="live" className="gap-1.5">
                       <Radio aria-hidden="true" className="h-3.5 w-3.5" />
                       Broadcast live
+                    </Badge>
+                    {/* ML transparency badge — sourced from PredictiveAllocator */}
+                    <Badge
+                      variant="outline"
+                      className="gap-1.5 border-primary/40 bg-primary/5 text-primary"
+                      title={`Subject compatibility: ${Math.round(result.subject_compatibility_score * 100)}% · Overall suitability: ${Math.round(result.suitability_score * 100)}%`}
+                    >
+                      <Wand2 aria-hidden="true" className="h-3.5 w-3.5" />
+                      {Math.round(result.subject_compatibility_score * 100)}% Match
                     </Badge>
                   </div>
                   <div>

@@ -4,11 +4,13 @@ import {
   CalendarRange,
   ClipboardCheck,
   LayoutDashboard,
+  Library,
   MessagesSquare,
   Repeat2,
   ScanSearch,
   Sparkles,
   UserRound,
+  Users,
 } from "lucide-react"
 import type { Role } from "./types"
 
@@ -28,6 +30,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Substitutes", href: "/substitute", icon: Repeat2, roles: ["admin"] },
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck, roles: ["admin", "teacher"] },
   { label: "Transport", href: "/transport", icon: Bus, roles: ["admin"] },
+  { label: "User Management", href: "/admin/users", icon: Users, roles: ["admin"] },
+  { label: "Doc Library", href: "/admin/documents", icon: Library, roles: ["admin"] },
   { label: "My Portal", href: "/portals/teacher", icon: UserRound, roles: ["teacher"] },
   { label: "My Portal", href: "/portals/student", icon: UserRound, roles: ["student"] },
 ]

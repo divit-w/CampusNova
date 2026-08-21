@@ -14,9 +14,19 @@ import { spring } from "@/lib/motion"
 import { cn } from "@/lib/utils"
 
 const VALID_EXT = [".jpg", ".jpeg", ".png", ".pdf"]
+/** 5 MB client-side guard — keeps requests well under the 10 MB backend limit
+ *  and provides an instant, friendly error before any network round-trip. */
+const MAX_FILE_BYTES = 5 * 1024 * 1024
 
+/**
+ * Returns today's date in local timezone as YYYY-MM-DD.
+ * Using Date.now() minus the UTC offset avoids the common off-by-one where
+ * toISOString() returns the *previous* day for UTC+ timezones after midnight.
+ */
 function todayIso() {
-  return new Date().toISOString().slice(0, 10)
+  return new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10)
 }
 
 function isValidFile(file: File) {
@@ -36,7 +46,7 @@ function formatBytes(bytes: number) {
  * upserts per-student present/absent rows for the given date.
  */
 export function VisionUploadZone() {
-  const [date, setDate] = useState(todayIso())
+  const [date, setDate] = useState(todayIso)
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -52,6 +62,12 @@ export function VisionUploadZone() {
     setValidationError(null)
     if (!isValidFile(f)) {
       setValidationError("Unsupported file type. Use JPG, PNG, or PDF.")
+      return
+    }
+    if (f.size > MAX_FILE_BYTES) {
+      setValidationError(
+        `File too large (${formatBytes(f.size)}). Maximum upload size is 5 MB.`,
+      )
       return
     }
     setFile(f)
