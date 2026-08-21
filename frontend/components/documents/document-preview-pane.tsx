@@ -36,7 +36,7 @@ export function DocumentPreviewPane({
   const inputRef = useRef<HTMLInputElement>(null)
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-4 shadow-soft sm:p-5">
+    <div className="flex h-full flex-col rounded-2xl border border-border glass-surface p-4 shadow-soft sm:p-5">
       <div className="flex items-center gap-2.5">
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
           <ImageIcon className="h-[18px] w-[18px]" />

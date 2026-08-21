@@ -29,7 +29,7 @@ export function CitationChip({ citation, index }: { citation: RAGCitation; index
         aria-expanded={open}
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-          open ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-primary",
+          open ? "border-primary/40 bg-primary/10 text-primary" : "border-border glass-surface text-muted-foreground hover:border-primary/30 hover:text-primary",
         )}
       >
         <FileText className="h-3 w-3 shrink-0" />

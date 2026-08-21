@@ -83,7 +83,7 @@ function KeyValueView({ data }: { data: Record<string, unknown> }) {
   return (
     <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
       {entries.map(([key, value]) => (
-        <motion.div key={key} variants={listItem} className="bg-card px-4 py-3">
+        <motion.div key={key} variants={listItem} className="glass-surface px-4 py-3">
           <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {humanizeKey(key)}
           </dt>
@@ -102,7 +102,7 @@ function ScalarListView({ items }: { items: unknown[] }) {
     <motion.ul variants={listContainer} className="flex flex-wrap gap-2">
       {items.map((item, i) => (
         <motion.li key={i} variants={listItem}>
-          <span className="inline-flex rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground">
+          <span className="inline-flex rounded-lg border border-border glass-surface px-3 py-1.5 text-sm text-foreground">
             {formatCellValue(item)}
           </span>
         </motion.li>
@@ -141,7 +141,7 @@ export function ResultRenderer({ results }: { results: unknown }) {
     icon = <Hash className="h-3.5 w-3.5" />
     shapeLabel = "value"
     content = (
-      <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground">
+      <div className="rounded-xl border border-border glass-surface px-4 py-3 text-sm text-foreground">
         {formatCellValue(results)}
       </div>
     )

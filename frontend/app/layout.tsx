@@ -25,7 +25,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} bg-surface`}>
+    <html lang="en" className={`${inter.variable}`}>
       <body className="font-sans antialiased">
         <AuthProvider>{children}</AuthProvider>
         <Toaster
@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           toastOptions={{
             classNames: {
               toast:
-                "!rounded-2xl !border !border-border !bg-card !text-card-foreground !shadow-soft-lg !font-sans",
+                "!rounded-2xl !border !border-border !bg-white/60 !backdrop-blur-xl !text-card-foreground !shadow-soft-lg !font-sans",
               title: "!text-sm !font-medium",
               description: "!text-xs !text-muted-foreground",
             },
