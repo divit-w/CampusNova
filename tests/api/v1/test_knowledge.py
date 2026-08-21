@@ -208,3 +208,104 @@ def test_get_document_status(mock_find_one):
     
     app.dependency_overrides.clear()
 
+
+# ── Agentic Query Router tests ─────────────────────────────────────────────
+
+import pytest
+import asyncio
+from app.api.v1.knowledge import classify_query_intent, _SUMMARIZE_RE
+
+
+@pytest.mark.asyncio
+@patch("app.api.v1.knowledge.openai_client.chat.completions.create", new_callable=AsyncMock)
+async def test_classify_intent_summarize_via_llm(mock_create):
+    mock_create.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(content="SUMMARIZE"))]
+    )
+    result = await classify_query_intent("Give me an overview of the document")
+    assert result == "SUMMARIZE"
+
+
+@pytest.mark.asyncio
+@patch("app.api.v1.knowledge.openai_client.chat.completions.create", new_callable=AsyncMock)
+async def test_classify_intent_search_via_llm(mock_create):
+    mock_create.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(content="SEARCH"))]
+    )
+    result = await classify_query_intent("What is the late-arrival policy?")
+    assert result == "SEARCH"
+
+
+@pytest.mark.asyncio
+@patch("app.api.v1.knowledge.openai_client.chat.completions.create", new_callable=AsyncMock)
+async def test_classify_intent_llm_failure_fallback_summarize(mock_create):
+    mock_create.side_effect = Exception("timeout")
+    result = await classify_query_intent("Can you summarize this document?")
+    assert result == "SUMMARIZE"
+
+
+@pytest.mark.asyncio
+@patch("app.api.v1.knowledge.openai_client.chat.completions.create", new_callable=AsyncMock)
+async def test_classify_intent_llm_failure_fallback_search(mock_create):
+    mock_create.side_effect = Exception("timeout")
+    result = await classify_query_intent("Who is the principal?")
+    assert result == "SEARCH"
+
+
+def test_summarize_regex_patterns():
+    assert _SUMMARIZE_RE.search("summarize this document")
+    assert _SUMMARIZE_RE.search("Give me a TL;DR")
+    assert _SUMMARIZE_RE.search("what are the key points?")
+    assert _SUMMARIZE_RE.search("give me an overview")
+    assert _SUMMARIZE_RE.search("tell me about this document")
+    assert not _SUMMARIZE_RE.search("What is the attendance policy?")
+    assert not _SUMMARIZE_RE.search("Who is the principal?")
+
+
+@patch("app.api.v1.knowledge.classify_query_intent", new_callable=AsyncMock)
+@patch("app.api.v1.knowledge.mongo_db.knowledge_collection.find_one", new_callable=AsyncMock)
+def test_query_summarize_no_docs_returns_graceful_message(mock_find_one, mock_intent):
+    mock_intent.return_value = "SUMMARIZE"
+    mock_find_one.return_value = None
+    response = client.post("/api/v1/knowledge/query", json={"query": "summarize the handbook"})
+    assert response.status_code == 200
+    data = response.json()
+    assert "No indexed documents" in data["answer"]
+    assert data["citations"] == []
+
+
+@patch("app.api.v1.knowledge.call_llm_text", new_callable=AsyncMock)
+@patch("app.api.v1.knowledge.classify_query_intent", new_callable=AsyncMock)
+@patch("app.api.v1.knowledge.chroma_db.get_or_create_collection")
+@patch("app.api.v1.knowledge.mongo_db.knowledge_collection.find_one", new_callable=AsyncMock)
+def test_query_summarize_happy_path(mock_find_one, mock_get_collection, mock_intent, mock_llm):
+    from datetime import datetime, timezone
+    mock_intent.return_value = "SUMMARIZE"
+    mock_find_one.return_value = {
+        "id": "doc-abc",
+        "title": "School Handbook.pdf",
+        "indexing_status": "completed",
+        "upload_date": datetime.now(timezone.utc),
+    }
+    mock_collection = MagicMock()
+    mock_collection.get.return_value = {
+        "documents": ["Chapter 1 text here.", "Chapter 2 text here."],
+        "metadatas": [
+            {"chunk_index": 0, "parent_text": "Parent block 1", "filename": "School Handbook.pdf"},
+            {"chunk_index": 1, "parent_text": "Parent block 2", "filename": "School Handbook.pdf"},
+        ],
+    }
+    mock_get_collection.return_value = mock_collection
+    # call_llm_text returns raw Markdown — no JSON wrapper
+    mock_llm.return_value = MagicMock(
+        choices=[MagicMock(message=MagicMock(
+            content="## Summary\n\n- Key point 1\n- Key point 2\n\n## Key Takeaways\n\n- Takeaway 1"
+        ))]
+    )
+    response = client.post("/api/v1/knowledge/query", json={"query": "give me a summary"})
+    assert response.status_code == 200
+    data = response.json()
+    assert "Summary" in data["answer"] or "Key point" in data["answer"]
+    assert len(data["citations"]) == 1
+    assert data["citations"][0]["source_file"] == "School Handbook.pdf"
+    assert data["citations"][0]["confidence_score"] == 1.0
