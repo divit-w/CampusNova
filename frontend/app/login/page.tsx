@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { CalendarRange, Loader2, Repeat2, Sparkles } from "lucide-react"
 import { BrandLogo } from "@/components/brand-logo"
+import { LavaBackground } from "@/components/lava-background"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -51,8 +52,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen bg-surface lg:grid-cols-[1.05fr_1fr]">
-      {/* Brand panel */}
+    <>
+      <LavaBackground />
+      <main className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
+        {/* Brand panel */}
       <section className="relative hidden overflow-hidden bg-gradient-to-br from-primary via-primary to-live p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
         <div
           aria-hidden
@@ -111,7 +114,7 @@ export default function LoginPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={spring}
-          className="w-full max-w-sm"
+          className="glass-surface w-full max-w-sm rounded-3xl p-8 shadow-soft-lg sm:p-10"
         >
           <div className="mb-8 lg:hidden">
             <BrandLogo />
@@ -176,6 +179,7 @@ export default function LoginPage() {
           </p>
         </motion.div>
       </section>
-    </main>
+      </main>
+    </>
   )
 }
