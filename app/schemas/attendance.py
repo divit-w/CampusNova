@@ -12,3 +12,12 @@ class EdgeAttendancePayload(BaseModel):
 class BulkEdgeSyncRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     records: List[EdgeAttendancePayload]
+
+
+class StudentAttendanceSummaryResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    student_id: str
+    total: int
+    present: int
+    absent: int
+    percentage: float
