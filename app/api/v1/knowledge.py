@@ -3,7 +3,7 @@ import json
 import logging
 import re
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Literal
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -193,7 +193,225 @@ async def call_llm(messages: list, model: str):
     return response
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+async def call_llm_text(messages: list, model: str):
+    """Like call_llm but without forcing JSON mode.
+
+    Used by the SUMMARIZE pathway where the LLM must return rich Markdown.
+    Forcing ``response_format=json_object`` on free-tier OpenRouter models
+    causes them to escape newlines inside the JSON string value, producing
+    literal ``\\n`` characters in the rendered UI instead of real line breaks.
+    Without JSON mode the model returns clean, unescaped Markdown directly.
+    """
+    response = await openai_client.chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=0.1,
+    )
+    return response
+
+
+# ── Agentic Query Router ───────────────────────────────────────────────────
+
+# Keyword heuristic — matches summarisation intent independently of the LLM.
+_SUMMARIZE_RE = re.compile(
+    r"\b(summarize|summarise|summary|summaries|overview|tldr|tl;dr|tl dr|"
+    r"brief|outline|abstract|gist|recap|rundown|key\s+points?|main\s+points?|"
+    r"what\s+is\s+this\s+(doc|document|file|about)|tell\s+me\s+about\s+this|"
+    r"explain\s+this\s+(doc|document)|digest)\b",
+    re.IGNORECASE,
+)
+
+
+async def classify_query_intent(query: str) -> Literal["SEARCH", "SUMMARIZE"]:
+    """Route a user query to SEARCH or SUMMARIZE using a fast LLM call.
+
+    The LLM is the primary decision maker. If it fails or returns something
+    unexpected the regex heuristic takes over, ensuring zero-latency degradation.
+    """
+    # ── Primary: LLM intent classifier ──────────────────────────────────────
+    router_prompt = (
+        "You are an intent classification engine. "
+        "Classify the user's query into exactly one of these two categories:\n\n"
+        "  SEARCH     — The user wants a specific fact, policy, name, rule, or answer "
+        "extracted from the indexed documents.\n"
+        "  SUMMARIZE  — The user wants a high-level summary, overview, digest, or recap "
+        "of a document.\n\n"
+        "Return ONLY the single word 'SEARCH' or 'SUMMARIZE'. No other text."
+    )
+    try:
+        router_resp = await openai_client.chat.completions.create(
+            model=settings.EMBEDDING_MODEL.replace("text-embedding-", "gpt-").split("/")[-1]
+            if "text-embedding" in settings.EMBEDDING_MODEL else "openai/gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": router_prompt},
+                {"role": "user", "content": query},
+            ],
+            temperature=0.0,
+            max_tokens=5,
+        )
+        label = (router_resp.choices[0].message.content or "").strip().upper()
+        if label in ("SEARCH", "SUMMARIZE"):
+            logger.debug("Intent classifier → %s for query %r", label, query)
+            return label  # type: ignore[return-value]
+    except Exception as exc:
+        logger.warning("Intent LLM failed (%s) — falling back to regex heuristic.", exc)
+
+    # ── Fallback: Regex heuristic ────────────────────────────────────────────
+    intent: Literal["SEARCH", "SUMMARIZE"] = (
+        "SUMMARIZE" if _SUMMARIZE_RE.search(query) else "SEARCH"
+    )
+    logger.debug("Intent heuristic → %s for query %r", intent, query)
+    return intent
+
+
+async def _build_summarize_context(max_chars: int = 15_000) -> tuple[str, list[RAGCitation]]:
+    """Fetch the most recent completed document and sample its chunks evenly.
+
+    Samples chunks from the beginning, middle, and end of the document so the
+    LLM gets representative coverage without blowing the context window.
+
+    Returns:
+        (context_text, citations)  — an empty string + [] if no docs are found.
+    """
+    # Most recently uploaded completed document
+    doc_record = await mongo_db.knowledge_collection.find_one(
+        {"indexing_status": "completed"},
+        sort=[("upload_date", -1)],
+    )
+    if not doc_record:
+        return "", []
+
+    document_id: str = doc_record["id"]
+    doc_title: str = doc_record.get("title", "Unknown Document")
+
+    # Pull all child chunks for this document from ChromaDB
+    collection = chroma_db.get_or_create_collection("student_documents")
+    try:
+        chunk_data = collection.get(
+            where={"document_id": document_id},
+            include=["documents", "metadatas"],
+        )
+    except Exception as exc:
+        logger.warning("ChromaDB fetch for summarise failed: %s", exc)
+        return "", []
+
+    raw_docs: list[str] = chunk_data.get("documents") or []
+    raw_metas: list[dict] = chunk_data.get("metadatas") or []
+
+    if not raw_docs:
+        return "", []
+
+    # Sort by chunk_index so the sample is positionally meaningful
+    paired = sorted(
+        zip(raw_docs, raw_metas),
+        key=lambda x: x[1].get("chunk_index", 0),
+    )
+
+    # Smart context windowing: evenly sample beginning, middle, and end
+    n = len(paired)
+    if n <= 9:
+        selected = paired
+    else:
+        # Take 3 from start, 3 from mid, 3 from end — scales with collection size
+        third = max(1, n // 3)
+        selected = list(paired[:third]) + list(paired[n // 2 - third // 2: n // 2 + third // 2]) + list(paired[-third:])
+
+    # Build context up to max_chars — use parent_text (large block) if available
+    context_parts: list[str] = []
+    chars_used = 0
+    for child_text, meta in selected:
+        block = meta.get("parent_text", child_text)
+        if chars_used + len(block) > max_chars:
+            remaining = max_chars - chars_used
+            if remaining > 200:  # Only append if there's meaningful space left
+                context_parts.append(block[:remaining])
+            break
+        context_parts.append(block)
+        chars_used += len(block)
+
+    context_text = "\n\n---\n\n".join(context_parts)
+
+    # Return a single whole-document citation
+    citations = [
+        RAGCitation(
+            document_id=document_id,
+            source_file=doc_title,
+            chunk_index=0,
+            confidence_score=1.0,
+            extracted_text=f"Full document summary of: {doc_title}",
+        )
+    ]
+    return context_text, citations
+
+
+async def _execute_summarize_path(query: str) -> RAGResponse:
+    """Run the SUMMARIZE pathway: fetch doc, window context, call LLM."""
+    context_text, citations = await _build_summarize_context()
+
+    if not context_text:
+        return RAGResponse(
+            query=query,
+            answer="No indexed documents were found. Please upload a PDF first.",
+            citations=[],
+        )
+
+    summarize_system_prompt = (
+        "You are an expert document analyst for a school ERP system. "
+        "You will be given raw text excerpts from a school document such as a policy handbook, "
+        "admission guide, or timetable.\n\n"
+        "Your task: write a comprehensive, highly structured executive summary in **Markdown only**.\n\n"
+        "FORMAT REQUIREMENTS (strictly follow — the UI renders Markdown):\n"
+        "- Start with a single **bold** sentence summarising the document in one line.\n"
+        "- Use `## ` headings for each major topic section.\n"
+        "- Under each heading use `- ` bullet points for detail items.\n"
+        "- Use `**bold**` for key terms, names, dates, and values.\n"
+        "- Separate every heading, bullet list block, and paragraph with a blank line.\n"
+        "- End with a `## Key Takeaways` section containing 3–5 bullet points.\n\n"
+        "CONTENT RULES:\n"
+        "- Use ONLY information present in the provided text.\n"
+        "- If a section is unclear write: *Not specified in document.*\n"
+        "- Do NOT invent, extrapolate, or hallucinate.\n"
+        "- Aim for 400–700 words.\n\n"
+        "Return ONLY the Markdown text. Do NOT wrap it in JSON. Do NOT add any preamble."
+    )
+
+    messages = [
+        {"role": "system", "content": summarize_system_prompt},
+        {"role": "user", "content": f"Document Excerpts:\n\n{context_text}\n\nUser Request: {query}"},
+    ]
+
+    try:
+        resp = await call_llm_text(messages, "openrouter/free")
+    except Exception as primary_e:
+        logger.warning("Primary LLM failed for summarise: %s. Trying fallback.", primary_e)
+        try:
+            resp = await call_llm_text(messages, "openai/gpt-oss-20b:free")
+        except Exception as secondary_e:
+            logger.error("Secondary LLM also failed for summarise: %s", secondary_e)
+            raise HTTPException(status_code=500, detail="LLM service unavailable")
+
+    # The model returns raw Markdown — use it directly.
+    # If for some reason the model wraps it in JSON anyway, attempt to unwrap.
+    raw_content = (resp.choices[0].message.content or "").strip()
+    if raw_content.startswith("{"):
+        try:
+            parsed = json.loads(raw_content)
+            answer = parsed.get("answer", raw_content)
+        except (json.JSONDecodeError, ValueError):
+            answer = raw_content
+    else:
+        answer = raw_content
+
+    if not answer:
+        answer = "The model returned an empty response. Please try again."
+
+    logger.info("Summarise path completed — answer length: %d chars", len(answer))
+    return RAGResponse(query=query, answer=answer, citations=citations)
+
+
 # ── Hybrid search helpers ──────────────────────────────────────────────────
+
 
 def _keyword_search(collection, query: str, n_results: int = 8) -> list[dict]:
     """TF-IDF keyword search across ALL stored ChromaDB chunks.
@@ -283,6 +501,16 @@ def _rrf_merge(
 @router.post("/query", response_model=RAGResponse)
 async def query_knowledge(request: QueryRequest):
     start_time = datetime.now(timezone.utc)
+
+    # ── Agentic Intent Router ─────────────────────────────────────────────────
+    # Classify the user's intent before doing any vector work.  SUMMARIZE
+    # queries bypass ChromaDB entirely and go straight to the document-windowing
+    # pathway; SEARCH queries continue through the full Hybrid RRF pipeline.
+    intent = await classify_query_intent(request.query)
+    logger.info("Query intent: %s for %r", intent, request.query)
+
+    if intent == "SUMMARIZE":
+        return await _execute_summarize_path(request.query)
     
     try:
         # Generate query embeddings
@@ -371,11 +599,13 @@ async def query_knowledge(request: QueryRequest):
         "You are a precise RAG assistant for a school ERP system. "
         "Answer the user's query using ONLY the information from the provided context chunks. "
         "You MUST return a JSON object with exactly two keys: 'status' and 'answer'.\n\n"
-        "FORMATTING RULES for the 'answer' string:\n"
-        "- Use bullet points (•) or numbered lists for any enumeration of items or steps.\n"
-        "- Separate distinct sections or ideas with a blank line (\\n\\n).\n"
-        "- Keep sentences concise. Avoid dense walls of text.\n"
-        "- If citing multiple facts, present each on its own line.\n\n"
+        "CRITICAL FORMATTING RULES for the 'answer' string — the UI renders Markdown directly:\n"
+        "- ALWAYS use double newlines (\\n\\n) between every paragraph, section, and list block.\n"
+        "- Use **bold** for key terms, names, and important values.\n"
+        "- Use `- ` (hyphen + space) or `• ` bullet points for lists. Each bullet on its own line.\n"
+        "- Use numbered lists (`1.`, `2.`) for sequential steps.\n"
+        "- Use `## ` headings to separate distinct topics when the answer covers multiple areas.\n"
+        "- Keep every sentence concise. Never produce a wall of text — always break into scannable blocks.\n\n"
         "STATUS RULES:\n"
         "- Set 'status' to 'success' if the context contains a useful answer.\n"
         "- If the context does not contain the answer, return EXACTLY: "

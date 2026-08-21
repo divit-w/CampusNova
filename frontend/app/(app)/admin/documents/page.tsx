@@ -24,13 +24,15 @@ import { spring } from "@/lib/motion"
 function formatDate(iso: string) {
   if (!iso) return "—"
   try {
-    return new Intl.DateTimeFormat("en-IN", {
+    // If backend returns a naive datetime string, append 'Z' to treat it as UTC
+    const utcString = iso.endsWith("Z") || iso.match(/[+-]\d{2}:\d{2}$/) ? iso : `${iso}Z`
+    return new Date(utcString).toLocaleString(undefined, {
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(new Date(iso))
+    })
   } catch {
     return iso
   }
@@ -91,11 +93,13 @@ export default function AdminDocumentsPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const {
     data: docs,
     error,
     isLoading,
+    isValidating,
     mutate,
   } = useSWR<KnowledgeDocumentSummary[]>(
     "/knowledge/documents",
@@ -105,6 +109,18 @@ export default function AdminDocumentsPage() {
       refreshInterval: (data) => (data?.some(d => d.indexing_status === "processing") ? 3000 : 0)
     },
   )
+
+  async function handleRefresh() {
+    setIsRefreshing(true)
+    try {
+      await Promise.all([
+        mutate(),
+        new Promise((resolve) => setTimeout(resolve, 500))
+      ])
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   async function confirmDelete() {
     if (!deleting) return
@@ -129,9 +145,17 @@ export default function AdminDocumentsPage() {
         title={<span className="text-gradient-brand">Knowledge Document Library</span>}
         description="All school documents uploaded to the RAG knowledge base. Each document is chunked and vector-indexed in ChromaDB for semantic search. Delete removes both the metadata record and all associated vectors."
         actions={
-          <Button variant="outline" size="sm" onClick={() => mutate()} className="gap-1.5">
-            <RefreshCcw className="h-4 w-4" />
-            Refresh
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="gap-1.5"
+          >
+            {isRefreshing
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <RefreshCcw className="h-4 w-4" />}
+            {isRefreshing ? "Refreshing…" : "Refresh"}
           </Button>
         }
       />
