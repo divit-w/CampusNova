@@ -11,6 +11,7 @@ import type {
   RAGResponse,
   ResolveConflictResponse,
   ResourceConflictRequest,
+  DashboardSummaryResponse,
   StudentAttendanceSummaryResponse,
   StudentRecord,
   TimetableConstraintPayload,
@@ -193,6 +194,9 @@ export const api = {
   },
   async roster(limit = 100): Promise<StudentRecord[]> {
     return request<StudentRecord[]>(`/admin/students?limit=${limit}`)
+  },
+  async dashboardSummary(): Promise<DashboardSummaryResponse> {
+    return request<DashboardSummaryResponse>("/admin/dashboard-summary")
   },
 
   /* Transport (admin) */
