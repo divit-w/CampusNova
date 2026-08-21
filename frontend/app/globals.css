@@ -75,6 +75,14 @@
   }
   body {
     @apply bg-surface text-foreground;
+    /* Faint blue/cyan aurora glow in the top corners — kills the "pure white
+       app shell" flatness while staying subtle enough for glass cards to sit
+       on top without hurting contrast. Fixed so it never scrolls or tiles. */
+    background-image:
+      radial-gradient(640px circle at 8% -8%, hsl(var(--primary) / 0.09), transparent 60%),
+      radial-gradient(560px circle at 108% -4%, hsl(var(--live) / 0.11), transparent 55%),
+      radial-gradient(480px circle at 50% 115%, hsl(var(--success) / 0.05), transparent 60%);
+    background-attachment: fixed;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
@@ -82,9 +90,23 @@
 @layer utilities {
   /* subtle glass surface used by the fixed connection pill */
   .glass {
-    background: hsl(0 0% 100% / 0.82);
-    backdrop-filter: saturate(180%) blur(12px);
-    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    background: hsl(0 0% 100% / 0.75);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+  /* Apple-glass surface for cards, sidebar and header — translucent, blurred,
+     lets the shell's aurora glow read through. */
+  .glass-surface {
+    background: hsl(var(--card) / 0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+  /* Blue → cyan brand text gradient for hero greetings and key metric numbers */
+  .text-gradient-brand {
+    background-image: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--live)));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
   }
   .shimmer {
     position: relative;

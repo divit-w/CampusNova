@@ -25,8 +25,8 @@ export function AttendanceTrendChart() {
 
   return (
     <Card className="flex flex-col overflow-hidden">
-      <div className="flex items-center gap-2.5 border-b border-border p-5">
-        <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
+      <div className="flex items-center gap-2.5 border-b border-border/60 p-5">
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-live/15 text-primary">
           <TrendingUp className="h-[18px] w-[18px]" />
         </span>
         <div>

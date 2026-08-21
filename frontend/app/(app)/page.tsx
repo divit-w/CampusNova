@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth"
 import { relativeTime, relativeTimeFromIso } from "@/lib/format"
 import { riseItem, staggerContainer } from "@/lib/motion"
 import { useDashboardSummary } from "@/lib/use-dashboard-summary"
+import { cn } from "@/lib/utils"
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -63,7 +64,7 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeading
-        title={`Good to see you, ${firstName}.`}
+        title={<span className="text-gradient-brand">Good to see you, {firstName}.</span>}
         description="Your campus operations at a glance. Jump into a workflow or keep an eye on the live alert stream."
       />
 
@@ -81,16 +82,27 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="flex flex-col gap-6">
-          {isAdmin && <AttendanceTrendChart />}
+          {isAdmin && (
+            <motion.div variants={riseItem} initial="hidden" animate="show">
+              <AttendanceTrendChart />
+            </motion.div>
+          )}
 
           {/* Quick actions */}
           <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4 sm:grid-cols-2">
             {ACTIONS.map((a) => (
               <motion.div key={a.href} variants={riseItem} className={a.href === "/assistant" ? "sm:col-span-2" : ""}>
                 <Link href={a.href} className="group block h-full">
-                  <Card className="flex h-full flex-col justify-between p-5 transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-soft-lg">
+                  <Card className="flex h-full flex-col justify-between p-5 transition-all duration-300 ease-spring hover:-translate-y-1 hover:scale-[1.02] hover:shadow-glow-primary">
                     <div className="flex items-start justify-between">
-                      <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
+                      <span
+                        className={cn(
+                          "grid h-11 w-11 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-110",
+                          a.href === "/assistant"
+                            ? "bg-gradient-to-br from-primary/15 to-live/15 text-primary"
+                            : "bg-primary/10 text-primary",
+                        )}
+                      >
                         <a.icon className="h-5 w-5" />
                       </span>
                       <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-primary" />
@@ -113,9 +125,9 @@ export default function DashboardPage() {
 
         {/* Alert Center — live stream + session history */}
         <Card className="flex flex-col overflow-hidden lg:sticky lg:top-6 lg:self-start">
-          <div className="flex items-center justify-between border-b border-border p-5">
+          <div className="flex items-center justify-between border-b border-border/60 p-5">
             <div className="flex items-center gap-2.5">
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-live/10 text-live">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-live/15 to-primary/10 text-live">
                 <Radio className="h-[18px] w-[18px]" />
               </span>
               <div>

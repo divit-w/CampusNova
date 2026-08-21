@@ -20,7 +20,10 @@ export function ConnectionPill() {
         initial={{ opacity: 0, y: 8, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={spring}
-        className="glass pointer-events-auto flex items-center gap-2 rounded-full border border-border/70 px-3 py-1.5 shadow-pill"
+        className={cn(
+          "glass pointer-events-auto flex items-center gap-2 rounded-full border px-3 py-1.5 shadow-pill transition-colors duration-300",
+          connected ? "border-live/25 shadow-glow-cyan" : "border-warning/25",
+        )}
       >
         <span className="relative flex h-2.5 w-2.5">
           <span

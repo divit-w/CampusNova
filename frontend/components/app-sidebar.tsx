@@ -51,7 +51,7 @@ function NavLinks({
               <motion.span
                 layoutId="nav-active"
                 transition={spring}
-                className="absolute inset-0 rounded-xl bg-primary/10"
+                className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/15 via-primary/10 to-live/10 shadow-glow-primary"
               />
             )}
             <Icon
@@ -141,7 +141,7 @@ export function AppSidebar({ role, collapsed, onToggleCollapsed, mobileOpen, onC
         initial={false}
         animate={{ width: collapsed ? 76 : 264 }}
         transition={spring}
-        className="sticky top-0 hidden h-screen shrink-0 border-r border-border bg-card md:block"
+        className="glass-surface sticky top-0 hidden h-screen shrink-0 border-r border-border/60 md:block"
       >
         {inner(false)}
       </motion.aside>
@@ -162,7 +162,7 @@ export function AppSidebar({ role, collapsed, onToggleCollapsed, mobileOpen, onC
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={spring}
-              className="fixed inset-y-0 left-0 z-50 w-[280px] border-r border-border bg-card md:hidden"
+              className="glass-surface fixed inset-y-0 left-0 z-50 w-[280px] border-r border-border/60 md:hidden"
             >
               {inner(true)}
             </motion.aside>
