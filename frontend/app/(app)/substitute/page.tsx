@@ -140,7 +140,7 @@ export default function SubstitutePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed border-primary/25 bg-white/50 px-6 py-10 text-center text-sm text-muted-foreground backdrop-blur-2xl"
+                className="flex flex-1 items-center justify-center rounded-xl border-2 border-dashed border-primary/25 bg-white/50 px-6 py-10 text-center text-sm text-muted-foreground backdrop-blur-2xl"
                 role="status"
                 aria-live="polite"
               >
@@ -200,9 +200,9 @@ export default function SubstitutePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border/60 bg-white/40 px-6 py-10 text-center backdrop-blur-xl"
+                className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border/60 bg-white/40 px-6 py-10 text-center backdrop-blur-xl"
               >
-                <span aria-hidden="true" className="grid h-12 w-12 place-items-center rounded-2xl bg-secondary text-muted-foreground">
+                <span aria-hidden="true" className="grid h-12 w-12 place-items-center rounded-xl bg-secondary text-muted-foreground">
                   <UserCheck className="h-5 w-5" />
                 </span>
                 <p className="max-w-xs text-pretty text-sm text-muted-foreground">

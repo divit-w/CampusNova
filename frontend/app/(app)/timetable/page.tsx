@@ -21,10 +21,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 // TimetableGrid does non-trivial memoized grid computation — neither is
 // needed for the idle/empty state most visits start on.
 const SolverProgress = dynamic(() => import("@/components/solver-progress").then((m) => m.SolverProgress), {
-  loading: () => <Skeleton className="h-64 w-full rounded-2xl" />,
+  loading: () => <Skeleton className="h-64 w-full rounded-xl" />,
 })
 const TimetableGrid = dynamic(() => import("@/components/timetable-grid").then((m) => m.TimetableGrid), {
-  loading: () => <Skeleton className="h-64 w-full rounded-2xl" />,
+  loading: () => <Skeleton className="h-64 w-full rounded-xl" />,
 })
 
 export default function TimetablePage() {

@@ -34,7 +34,7 @@ export function ChatComposer({
 
   return (
     <div className="glass sticky bottom-0 z-10 border-t border-border px-4 py-3 sm:px-6">
-      <div className="flex items-end gap-2 rounded-2xl border border-border glass-surface p-1.5 shadow-soft transition-colors focus-within:border-primary/50">
+      <div className="flex items-end gap-2 rounded-xl border border-border glass-surface p-1.5 shadow-soft transition-colors focus-within:border-primary/50">
         <textarea
           ref={textareaRef}
           value={value}

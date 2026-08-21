@@ -134,7 +134,7 @@ export default function AssistantPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex items-center gap-3 rounded-2xl border border-border glass-surface px-5 py-8 text-sm text-muted-foreground"
+            className="flex items-center gap-3 rounded-xl border border-border glass-surface px-5 py-8 text-sm text-muted-foreground"
           >
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             Interpreting your request and querying the ERP…

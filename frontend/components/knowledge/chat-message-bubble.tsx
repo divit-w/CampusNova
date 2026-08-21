@@ -41,7 +41,7 @@ export function ChatMessageBubble({ message, onRetry }: { message: ChatMessage; 
       <div className={cn("flex max-w-[78%] flex-col gap-1.5", isUser && "items-end")}>
         <div
           className={cn(
-            "rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-soft text-pretty",
+            "rounded-xl px-4 py-2.5 text-sm leading-relaxed shadow-soft text-pretty",
             isUser
               ? "rounded-br-md bg-primary text-primary-foreground"
               : message.isError
