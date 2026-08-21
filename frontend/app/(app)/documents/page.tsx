@@ -106,7 +106,7 @@ export default function DocumentsPage() {
     <div>
       <PageHeading
         icon={<ScanSearch className="h-5 w-5" />}
-        title="Document Intake & OCR"
+        title={<span className="text-gradient-brand">Document Intake &amp; OCR</span>}
         description="Digitize paper records — upload a scan, run OCR, then verify and approve extracted fields before they index into ChromaDB."
       />
 
@@ -133,7 +133,7 @@ export default function DocumentsPage() {
 
       <AnimatePresence>
         {error ? (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-4 rounded-2xl border border-border glass-surface">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-4 rounded-2xl glass-surface">
             <ErrorState error={error} onRetry={extract} />
           </motion.div>
         ) : null}

@@ -79,7 +79,7 @@ export default function TeacherPortalPage() {
                 const color = getSubjectColor(cls.subject)
                 return (
                   <motion.div key={cls.class_id} variants={listItem}>
-                    <Card className="h-full p-4 transition-shadow duration-300 hover:shadow-soft-lg">
+                    <Card className="h-full p-4 transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-glow-primary">
                       <div className="flex items-start justify-between gap-2">
                         <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${color.bg} ${color.text}`}>
                           <BookOpen className="h-4 w-4" />
@@ -111,9 +111,9 @@ export default function TeacherPortalPage() {
         <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-4">
           <motion.div variants={riseItem}>
             <Link href="/attendance" className="group block">
-              <Card className="flex flex-col gap-4 p-5 transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-soft-lg">
+              <Card className="flex flex-col gap-4 p-5 transition-all duration-300 ease-spring hover:-translate-y-1 hover:scale-[1.02] hover:shadow-glow-primary">
                 <div className="flex items-start justify-between">
-                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
+                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-live/15 text-primary transition-transform duration-300 group-hover:scale-110">
                     <ClipboardCheck className="h-5 w-5" />
                   </span>
                   <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-primary" />
@@ -129,9 +129,9 @@ export default function TeacherPortalPage() {
           </motion.div>
 
           <motion.div variants={riseItem}>
-            <Card className="p-5">
+            <Card className="p-5 transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-glow-cyan">
               <div className="flex items-center gap-2.5">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-live/10 text-live">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-live/15 to-primary/10 text-live">
                   <CalendarDays className="h-[18px] w-[18px]" />
                 </span>
                 <div>
@@ -139,7 +139,7 @@ export default function TeacherPortalPage() {
                   <p className="text-xs text-muted-foreground">Across all assigned sections</p>
                 </div>
               </div>
-              <p className="mt-4 text-2xl font-semibold tracking-tight tabular-nums">{classCount}</p>
+              <p className="text-gradient-brand mt-4 text-2xl font-semibold tracking-tight tabular-nums">{classCount}</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {classCount === 1 ? "class currently assigned" : "classes currently assigned"}
               </p>

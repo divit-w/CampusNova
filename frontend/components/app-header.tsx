@@ -74,7 +74,7 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
       <div className="relative" ref={menuRef}>
         <button
           onClick={() => setMenuOpen((o) => !o)}
-          className="flex items-center gap-2.5 rounded-full border border-border bg-card py-1 pl-1 pr-2.5 shadow-sm transition-colors hover:bg-accent"
+          className="glass flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2.5 transition-all duration-300 ease-spring hover:scale-[1.02] hover:shadow-glow-primary"
         >
           <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-primary to-live text-xs font-semibold text-primary-foreground">
             {initials}
@@ -94,7 +94,7 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.16 }}
-              className="absolute right-0 mt-2 w-60 overflow-hidden rounded-2xl border border-border bg-popover p-2 shadow-soft-lg"
+              className="glass-surface absolute right-0 mt-2 w-60 overflow-hidden rounded-2xl p-2 shadow-soft-lg"
             >
               <div className="flex items-center gap-3 rounded-xl p-2.5">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-live text-xs font-semibold text-primary-foreground">

@@ -52,7 +52,7 @@ export default function SubstitutePage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeading
         icon={<UserX className="h-5 w-5" />}
-        title="Substitute Resolution"
+        title={<span className="text-gradient-brand">Substitute Resolution</span>}
         description="Report an absent teacher and CampusNova's predictive allocator ranks and assigns the best available substitute — broadcasting a live alert to everyone connected."
       />
 
@@ -108,8 +108,8 @@ export default function SubstitutePage() {
                     className={
                       "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background " +
                       (timeSlot === slot
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border glass-surface text-muted-foreground hover:border-primary/40")
+                        ? "border-primary bg-gradient-to-r from-primary/15 to-live/10 text-primary shadow-glow-primary"
+                        : "glass-surface text-muted-foreground hover:border-primary/40")
                     }
                   >
                     <Clock aria-hidden="true" className="h-3.5 w-3.5" />
@@ -140,7 +140,7 @@ export default function SubstitutePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-border glass-surface px-6 py-10 text-center text-sm text-muted-foreground"
+                className="flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed border-primary/25 bg-white/50 px-6 py-10 text-center text-sm text-muted-foreground backdrop-blur-2xl"
                 role="status"
                 aria-live="polite"
               >
@@ -200,7 +200,7 @@ export default function SubstitutePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-6 py-10 text-center"
+                className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border/60 bg-white/40 px-6 py-10 text-center backdrop-blur-xl"
               >
                 <span aria-hidden="true" className="grid h-12 w-12 place-items-center rounded-2xl bg-secondary text-muted-foreground">
                   <UserCheck className="h-5 w-5" />
