@@ -32,14 +32,19 @@ export function TransportKpiCard({ compact = false }: { compact?: boolean }) {
   return (
     <motion.div variants={riseItem}>
       <Link href="/transport" className="group block h-full">
-        <Card className={cn("h-full p-5 transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-soft-lg", compact && "p-4")}>
+        <Card
+          className={cn(
+            "h-full p-5 transition-all duration-300 ease-spring hover:-translate-y-1 hover:scale-[1.02] hover:shadow-glow-cyan",
+            compact && "p-4",
+          )}
+        >
           <div className="flex items-center justify-between">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-live/10 text-live">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-live/15 to-primary/10 text-live transition-transform duration-300 group-hover:scale-110">
               <Bus className="h-[18px] w-[18px]" />
             </span>
             <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-1 group-hover:text-primary" />
           </div>
-          <p className="mt-4 text-2xl font-semibold tracking-tight tabular-nums">
+          <p className="text-gradient-brand mt-4 text-2xl font-semibold tracking-tight tabular-nums">
             {data?.has_plan ? data.active_routes : "—"}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">

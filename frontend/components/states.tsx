@@ -15,7 +15,7 @@ export function PageHeading({
   actions,
 }: {
   icon?: React.ReactNode
-  title: string
+  title: React.ReactNode
   description?: string
   actions?: React.ReactNode
 }) {
@@ -28,7 +28,10 @@ export function PageHeading({
     >
       <div className="flex items-start gap-3">
         {icon && (
-          <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+          <span
+            aria-hidden="true"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary/15 to-live/15 text-primary"
+          >
             {icon}
           </span>
         )}
