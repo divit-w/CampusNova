@@ -2,11 +2,13 @@ import hashlib
 import json
 import logging
 from datetime import datetime, timezone
+from typing import List
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from app.api.v1.deps import require_roles
 from app.services.ingestion_service import ingestion_service, client as openai_client
 from app.services.mongo_service import mongo_db
 from app.services.chroma_service import chroma_db
@@ -19,6 +21,71 @@ MAX_FILE_SIZE = 15 * 1024 * 1024  # 15MB
 
 class QueryRequest(BaseModel):
     query: str
+
+
+class KnowledgeDocumentListItem(BaseModel):
+    """A summary record of an uploaded knowledge document as stored in MongoDB."""
+    id: str
+    title: str
+    total_chunks: int
+    file_hash: str
+    upload_date: str
+
+
+@router.get("/documents", response_model=List[KnowledgeDocumentListItem])
+async def list_knowledge_documents(
+    skip: int = 0,
+    limit: int = 50,
+    current_user: dict = Depends(require_roles(["admin"])),
+):
+    """
+    Returns a paginated list of all uploaded school knowledge documents.
+    Consumed by the frontend Document Library page.
+    """
+    cursor = mongo_db.knowledge_collection.find({}, {"_id": 0}).skip(skip).limit(limit)
+    docs = await cursor.to_list(length=limit)
+    result = []
+    for d in docs:
+        result.append(KnowledgeDocumentListItem(
+            id=d.get("id", ""),
+            title=d.get("title", "Untitled"),
+            total_chunks=d.get("total_chunks", 0),
+            file_hash=d.get("file_hash", d.get("sha256_hash", "")),
+            upload_date=(
+                d["upload_date"].isoformat()
+                if isinstance(d.get("upload_date"), datetime)
+                else str(d.get("upload_date", ""))
+            ),
+        ))
+    return result
+
+
+@router.delete("/documents/{doc_id}", status_code=204)
+async def delete_knowledge_document(
+    doc_id: str,
+    current_user: dict = Depends(require_roles(["admin"])),
+):
+    """
+    Deletes a knowledge document from MongoDB and removes its associated
+    vector embeddings from ChromaDB. Returns 204 No Content on success.
+    """
+    doc = await mongo_db.knowledge_collection.find_one({"id": doc_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail=f"Document '{doc_id}' not found.")
+
+    # Remove all vector chunks for this document from ChromaDB
+    try:
+        collection = chroma_db.get_or_create_collection("student_documents")
+        # ChromaDB where filter to match all chunks with this document_id
+        existing = collection.get(where={"document_id": doc_id})
+        if existing and existing.get("ids") and len(existing["ids"]) > 0:
+            collection.delete(ids=existing["ids"])
+    except Exception as e:
+        logger.warning(f"ChromaDB cleanup for doc {doc_id} failed: {e}. Proceeding with MongoDB delete.")
+
+    # Remove the document record from MongoDB
+    await mongo_db.knowledge_collection.delete_one({"id": doc_id})
+    return None  # 204 No Content
 
 @router.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
