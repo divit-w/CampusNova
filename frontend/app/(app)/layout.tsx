@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/app-header"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ConnectionPill } from "@/components/connection-pill"
 import { BrandLogo } from "@/components/brand-logo"
+import { LavaBackground } from "@/components/lava-background"
 import { AlertProvider } from "@/lib/alerts"
 import { getToken } from "@/lib/api"
 import { useAuth } from "@/lib/auth"
@@ -36,17 +37,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading || !user) {
     return (
-      <div className="grid min-h-screen place-items-center">
-        <div className="flex flex-col items-center gap-4">
-          <BrandLogo showWordmark={false} className="animate-pulse-live" />
-          <p className="text-sm text-muted-foreground">Loading your workspace…</p>
+      <>
+        <LavaBackground />
+        <div className="grid min-h-screen place-items-center">
+          <div className="flex flex-col items-center gap-4">
+            <BrandLogo showWordmark={false} className="animate-pulse-live" />
+            <p className="text-sm text-muted-foreground">Loading your workspace…</p>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   return (
     <AlertProvider token={getToken()}>
+      <LavaBackground />
       <div className="flex min-h-screen">
         <AppSidebar
           role={user.role}
