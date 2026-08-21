@@ -36,6 +36,8 @@ export interface TimetableSubject {
   id: string
   name: string
   required_weekly_hours: number
+  qualified_teachers?: string[]
+
 }
 export interface TimetableCohort {
   id: string
@@ -155,10 +157,41 @@ export interface FeedAlert {
 
 /* ── Attendance — app/api/v1/endpoints/attendance.py + admin_erp.py ──── */
 
+<<<<<<< Updated upstream
 export interface ExtractedAttendanceRecord {
   student_id: string
   name: string
   status: "present" | "absent" | "on_leave"
+=======
+export interface ProcessedAttendanceRow {
+  row_id: string
+  student_id?: string
+  student_name?: string
+  status?: string
+  validations: Record<string, ValidationResult>
+  decision: "VALID" | "REVIEW" | "EXCEPTION"
+  decision_reason?: string
+}
+
+export interface BulkAttendanceResponse {
+  batch_id: string
+  date?: string
+  class_section?: string
+  total_rows: number
+  valid_rows: number
+  review_rows: number
+  exception_rows: number
+  records: ProcessedAttendanceRow[]
+  overall_decision: "AUTO" | "REVIEW" | "EXCEPTION"
+  decision_reason?: string
+}
+
+export interface FinalizeBulkAttendanceRequest {
+  batch_id: string
+  date: string
+  class_section: string
+  records: ProcessedAttendanceRow[]
+>>>>>>> Stashed changes
 }
 
 /** POST /attendance/process-sheet */
@@ -193,6 +226,8 @@ export interface AttendanceStudentRecord {
   total: number
   present: number
   absent: number
+  excused?: number
+  leave?: number
 }
 export interface AttendanceSummaryResponse {
   date: string
@@ -243,17 +278,34 @@ export interface KnowledgeUploadResponse {
 
 /* ── Document intake / OCR — app/schemas/documents.py ───────────────── */
 
-export interface DocumentConfidenceScores {
-  student_name: number
-  admission_number: number
+export interface ExtractedField {
+  key: string
+  value: string
+  confidence: string
+}
+
+export interface ValidationResult {
+  passed: boolean
+  code: string
+  message: string
+  severity?: "INFO" | "WARNING" | "POLICY_FLAG" | "CRITICAL"
 }
 
 export interface ExtractedDocument {
-  student_name: string
-  admission_number: string
-  grade_level: number
-  confidence_scores: DocumentConfidenceScores
-  requires_review: boolean
+  document_category: string
+  summary: string
+  extracted_fields: ExtractedField[]
+  student_name?: string
+  student_id?: string
+  leave_start_date?: string
+  leave_end_date?: string
+  leave_type?: string
+  requires_human_review: boolean
+  student_verified?: boolean
+  matched_student_class?: string
+  validations?: Record<string, ValidationResult>
+  decision?: "AUTO" | "REVIEW" | "EXCEPTION"
+  decision_reason?: string
 }
 
 /** POST /documents/extract */

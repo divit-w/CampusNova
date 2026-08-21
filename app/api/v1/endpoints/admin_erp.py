@@ -130,9 +130,15 @@ async def attendance_summary(
                 "absent": {
                     "$sum": {"$cond": [{"$eq": ["$status", "absent"]}, 1, 0]}
                 },
+                "excused": {
+                    "$sum": {"$cond": [{"$in": ["$status", ["excused", "leave"]]}, 1, 0]}
+                },
+                "leave": {
+                    "$sum": {"$cond": [{"$in": ["$status", ["excused", "leave"]]}, 1, 0]}
+                },
             }
         },
-        {"$project": {"_id": 0, "student_id": "$_id", "total": 1, "present": 1, "absent": 1}},
+        {"$project": {"_id": 0, "student_id": "$_id", "total": 1, "present": 1, "absent": 1, "excused": 1, "leave": 1}},
         {"$sort": {"student_id": 1}},
     ]
 
