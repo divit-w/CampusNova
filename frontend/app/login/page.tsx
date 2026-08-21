@@ -33,12 +33,11 @@ export default function LoginPage() {
     if (!loading && user) router.replace(landingForRole(user.role))
   }, [user, loading, router])
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function performLogin(targetEmail: string, targetPassword: string) {
     setError(null)
     setSubmitting(true)
     try {
-      const me = await login(email.trim(), password)
+      const me = await login(targetEmail.trim(), targetPassword)
       router.replace(landingForRole(me.role))
     } catch (err) {
       if (err instanceof ApiError) {
@@ -50,6 +49,16 @@ export default function LoginPage() {
       }
       setSubmitting(false)
     }
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    await performLogin(email, password)
+  }
+
+  async function onJudgeAccess() {
+    setEmail("demo-judge@campusnova.com")
+    setPassword("judge123")
   }
 
   return (
@@ -175,6 +184,17 @@ export default function LoginPage() {
               ) : (
                 "Sign in"
               )}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled={submitting}
+              onClick={onJudgeAccess}
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-slate-700 backdrop-blur-sm"
+            >
+              Auto-Fill Demo Credentials
             </Button>
           </form>
 
