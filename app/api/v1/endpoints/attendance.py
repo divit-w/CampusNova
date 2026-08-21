@@ -6,6 +6,7 @@ import base64
 from datetime import datetime, timezone
 import json
 import httpx
+import math
 from pymongo import UpdateOne
 from app.api.v1.deps import require_roles
 from app.core.config import settings
@@ -13,20 +14,33 @@ from app.core.utils import haversine_distance
 from app.services.mongo_service import mongo_db
 from app.core.limiter import limiter
 
+TARGET_LAT = 28.6304
+TARGET_LON = 77.3711
+MAX_RADIUS_M = 500.0
+
+def calculate_distance_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371000.0  # Earth radius in meters
+    phi_1 = math.radians(lat1)
+    phi_2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    a = math.sin(delta_phi / 2.0)**2 + math.cos(phi_1) * math.cos(phi_2) * math.sin(delta_lambda / 2.0)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    
+    return R * c
+
 router = APIRouter()
 
 async def check_liveness(base64_image: str) -> bool:
     """
-    Calls OpenRouter Vision API to verify that the uploaded selfie shows a real human face.
-    Fails closed: any network error, API error, or ambiguous response returns False.
-    Falls back to True only in local dev when OPENROUTER_API_KEY is absent.
+    Strict verification. If the API fails, it explicitly raises the exact HTTP error.
     """
     if not settings.OPENROUTER_API_KEY:
-        # Local development fallback — no API key configured
-        return True
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY is missing from environment variables.")
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={
@@ -34,7 +48,7 @@ async def check_liveness(base64_image: str) -> bool:
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": "meta-llama/llama-3.2-11b-vision-instruct:free",
+                    "model": "openrouter/free",
                     "messages": [
                         {
                             "role": "user",
@@ -57,18 +71,24 @@ async def check_liveness(base64_image: str) -> bool:
             response.raise_for_status()
             answer = response.json()["choices"][0]["message"]["content"].strip().upper()
             return answer.startswith("YES")
-    except Exception:
-        # Fail closed — any upstream error must not grant access
-        return False
+            
+    except httpx.HTTPStatusError as e:
+        logger.error(f"OpenRouter API HTTP Error: {e.response.text}")
+        if e.response.status_code == 429:
+            raise HTTPException(status_code=429, detail="OpenRouter API Rate limit exceeded. Please try again in a few minutes.")
+        raise HTTPException(status_code=502, detail=f"AI Provider Error {e.response.status_code}: {e.response.text}")
+    except httpx.RequestError as e:
+        logger.error(f"OpenRouter Network Error: {str(e)}")
+        raise HTTPException(status_code=504, detail="AI Provider Timeout or Network Error.")
 
-async def extract_attendance_from_image(base64_image: str) -> list:
+async def extract_attendance_from_image(base64_image: str) -> dict:
     """
     Calls OpenRouter Vision API to extract attendance records.
-    Returns a list of dicts: [{"student_id": "...", "status": "present"|"absent"}]
+    Returns a dict: {"date": "YYYY-MM-DD", "records": [{"student_id": "...", "name": "...", "status": "present"|"absent"|"on_leave"}]}
     """
     if not settings.OPENROUTER_API_KEY:
         # Fallback/mock for local execution if no API key is provided
-        return [{"student_id": "S101", "status": "present"}, {"student_id": "S102", "status": "absent"}]
+        return {"date": "2026-08-16", "records": [{"student_id": "s1", "name": "Alice Johnson", "status": "present"}, {"student_id": "s2", "name": "Bob Smith", "status": "absent"}]}
         
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:  # Step 7: explicit timeout
@@ -79,14 +99,14 @@ async def extract_attendance_from_image(base64_image: str) -> list:
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "meta-llama/llama-3.2-11b-vision-instruct:free",
+                    "model": "openrouter/free",
                     "messages": [
                         {
                             "role": "user",
                             "content": [
                                 {
                                     "type": "text",
-                                    "text": "Extract attendance records from this image. Return ONLY a JSON array containing objects with 'student_id' and 'status' (strictly 'present' or 'absent'). Do not include markdown formatting or any other text."
+                                    "text": "Extract attendance records from this image. Parse any tabular grid containing Student/Staff Names, Roll Numbers, and P/A/Tick/Cross marks into standard JSON. Return ONLY a JSON object containing a 'date' (YYYY-MM-DD) and a 'records' array. Each record object must have 'student_id', 'name', and 'status' (strictly 'present', 'absent', or 'on_leave'). Do not include markdown formatting or any other text."
                                 },
                                 {
                                     "type": "image_url",
@@ -124,9 +144,12 @@ async def faculty_clock_in(
     current_user: dict = Depends(require_roles(["teacher", "admin"]))
 ):
     # 1. Geofence Check
-    distance = haversine_distance(settings.CAMPUS_LAT, settings.CAMPUS_LON, latitude, longitude)
-    if distance > settings.GEOFENCE_RADIUS_METERS:
-        raise HTTPException(status_code=403, detail="Outside Geofence")
+    distance = calculate_distance_meters(latitude, longitude, TARGET_LAT, TARGET_LON)
+    if distance > MAX_RADIUS_M:
+        raise HTTPException(
+            status_code=403, 
+            detail=f"Outside geofence. Distance: {int(distance)}m"
+        )
         
     # 2. Convert image to base64
     image_bytes = await file.read()
@@ -173,33 +196,48 @@ async def process_sheet(
     b64_img = base64.b64encode(image_bytes).decode('utf-8')
     
     # 3 & 4 & 5. Call Vision API and parse JSON
-    records = await extract_attendance_from_image(b64_img)
+    extracted_data = await extract_attendance_from_image(b64_img)
+    records = extracted_data.get("records", [])
+    extracted_date = extracted_data.get("date", date)
     
     if not records:
-        return {"status": "success", "message": "No records extracted", "processed_count": 0}
+        return {"status": "success", "message": "No records extracted", "processed_count": 0, "records": [], "date": date}
         
-    # 6. MongoDB bulk write (UpdateOne with upsert=True)
+    return {
+        "status": "success",
+        "message": f"Successfully extracted {len(records)} attendance records",
+        "processed_count": len(records),
+        "records": records,
+        "date": extracted_date
+    }
+
+from app.schemas.attendance import BulkEdgeSyncRequest, SyncBulkRequest
+
+@router.post("/sync-bulk")
+async def sync_bulk(
+    request: SyncBulkRequest,
+    current_user: dict = Depends(require_roles(["teacher", "admin"]))
+):
     operations = []
-    for record in records:
-        if "student_id" in record and "status" in record:
-            operations.append(
-                UpdateOne(
-                    {"student_id": record["student_id"], "date": date},
-                    {"$set": {
-                        "status": record["status"],
-                        "teacher_id": current_user["id"],
-                        "updated_at": datetime.now(timezone.utc)
-                    }},
-                    upsert=True
-                )
+    for record in request.records:
+        operations.append(
+            UpdateOne(
+                {"student_id": record.student_id, "date": request.date},
+                {"$set": {
+                    "status": record.status,
+                    "teacher_id": current_user["id"],
+                    "updated_at": datetime.now(timezone.utc)
+                }},
+                upsert=True
             )
+        )
             
     if operations:
         await mongo_db.student_attendance_collection.bulk_write(operations)
         
     return {
         "status": "success",
-        "message": f"Successfully processed {len(operations)} attendance records",
+        "message": f"Successfully synced {len(operations)} attendance records",
         "processed_count": len(operations)
     }
 

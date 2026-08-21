@@ -21,3 +21,14 @@ class StudentAttendanceSummaryResponse(BaseModel):
     present: int
     absent: int
     percentage: float
+
+class ExtractedAttendanceRecord(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    student_id: str
+    name: str = ""
+    status: Literal["present", "absent", "on_leave"]
+
+class SyncBulkRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    date: str
+    records: List[ExtractedAttendanceRecord]

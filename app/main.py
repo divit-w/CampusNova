@@ -119,38 +119,41 @@ async def lifespan(app: FastAPI):
     use index scans (IXSCAN) instead of full collection scans (COLLSCAN).
     background=True lets the server accept requests while indexes build on large collections.
     """
-    logger.info("Creating MongoDB indexes...")
+    try:
+        logger.info("Creating MongoDB indexes...")
 
-    # users — queried on every authenticated request via JWT validation in deps.py
-    await mongo_db.users_collection.create_index("id", unique=True, background=True)
+        # users — queried on every authenticated request via JWT validation in deps.py
+        await mongo_db.users_collection.create_index("id", unique=True, background=True)
 
-    # students / teachers — duplicate-ID guards + portal lookups
-    await mongo_db.students_collection.create_index("student_id", unique=True, background=True)
-    await mongo_db.teachers_collection.create_index("teacher_id", unique=True, background=True)
+        # students / teachers — duplicate-ID guards + portal lookups
+        await mongo_db.students_collection.create_index("student_id", unique=True, background=True)
+        await mongo_db.teachers_collection.create_index("teacher_id", unique=True, background=True)
 
-    # classes — queried by teacher portal (teacher_id) and student portal (grade + section)
-    await mongo_db.classes_collection.create_index("teacher_id", background=True)
-    await mongo_db.classes_collection.create_index(
-        [("grade", 1), ("section", 1)], background=True
-    )
+        # classes — queried by teacher portal (teacher_id) and student portal (grade + section)
+        await mongo_db.classes_collection.create_index("teacher_id", background=True)
+        await mongo_db.classes_collection.create_index(
+            [("grade", 1), ("section", 1)], background=True
+        )
 
-    # substitutions — conflict-check queries filter on date + time_slot
-    await mongo_db.substitutions_collection.create_index(
-        [("date", 1), ("time_slot", 1)], background=True
-    )
+        # substitutions — conflict-check queries filter on date + time_slot
+        await mongo_db.substitutions_collection.create_index(
+            [("date", 1), ("time_slot", 1)], background=True
+        )
 
-    # attendance — bulk upsert filter and reporting queries use student_id + date
-    await mongo_db.student_attendance_collection.create_index(
-        [("student_id", 1), ("date", 1)], background=True
-    )
+        # attendance — bulk upsert filter and reporting queries use student_id + date
+        await mongo_db.student_attendance_collection.create_index(
+            [("student_id", 1), ("date", 1)], background=True
+        )
 
-    # faculty attendance — future reporting queries filter by teacher_id
-    await mongo_db.faculty_attendance_collection.create_index("teacher_id", background=True)
+        # faculty attendance — future reporting queries filter by teacher_id
+        await mongo_db.faculty_attendance_collection.create_index("teacher_id", background=True)
 
-    # knowledge documents — SHA-256 deduplication lookup
-    await mongo_db.knowledge_collection.create_index("sha256_hash", unique=True, background=True)
+        # knowledge documents — SHA-256 deduplication lookup
+        await mongo_db.knowledge_collection.create_index("sha256_hash", unique=True, background=True)
 
-    logger.info("MongoDB indexes created successfully.")
+        logger.info("MongoDB indexes created successfully.")
+    except Exception as e:
+        logger.warning(f"Non-critical: MongoDB index creation skipped/delayed: {e}")
     yield
     # Shutdown: nothing to clean up — Motor client lifecycle is managed by MongoManager
 

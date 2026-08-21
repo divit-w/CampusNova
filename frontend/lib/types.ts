@@ -155,8 +155,27 @@ export interface FeedAlert {
 
 /* ── Attendance — app/api/v1/endpoints/attendance.py + admin_erp.py ──── */
 
+export interface ExtractedAttendanceRecord {
+  student_id: string
+  name: string
+  status: "present" | "absent" | "on_leave"
+}
+
 /** POST /attendance/process-sheet */
 export interface ProcessSheetResponse {
+  status: string
+  message: string
+  processed_count: number
+  records: ExtractedAttendanceRecord[]
+  date: string
+}
+
+export interface SyncBulkRequest {
+  date: string
+  records: ExtractedAttendanceRecord[]
+}
+
+export interface SyncBulkResponse {
   status: string
   message: string
   processed_count: number
