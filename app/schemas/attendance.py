@@ -30,6 +30,7 @@ class ExtractedAttendanceRecord(BaseModel):
 class SyncBulkRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     date: str
+    class_section: str
     records: List[ExtractedAttendanceRecord]
 
 class ValidationResult(BaseModel):

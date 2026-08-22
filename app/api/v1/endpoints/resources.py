@@ -21,7 +21,7 @@ async def resolve_conflict(
     await simulate_rag_policy_check()
 
     # Check if absent teacher exists
-    absent_teacher = await mongo_db.teachers_collection.find_one({"id": request.absent_teacher_id})
+    absent_teacher = await mongo_db.teachers_collection.find_one({"teacher_id": request.absent_teacher_id})
     if not absent_teacher:
         raise HTTPException(status_code=404, detail="Absent teacher not found")
 
@@ -37,7 +37,7 @@ async def resolve_conflict(
     busy_teacher_ids.append(request.absent_teacher_id)
 
     available_teachers = await mongo_db.teachers_collection.find({
-        "id": {"$nin": busy_teacher_ids}
+        "teacher_id": {"$nin": busy_teacher_ids}
     }).to_list(length=100)
 
     if not available_teachers:
@@ -53,10 +53,14 @@ async def resolve_conflict(
 
     ranked_teachers = PredictiveAllocator.rank_substitutes(available_teachers)
     substitute = ranked_teachers[0]
+    
+    substitute_tid = substitute.get("teacher_id")
+    if not substitute_tid:
+        raise HTTPException(status_code=500, detail="Corrupt teacher record missing teacher_id")
 
     substitution_record = {
         "absent_teacher_id": request.absent_teacher_id,
-        "substitute_teacher_id": substitute["id"],
+        "substitute_teacher_id": substitute_tid,
         "date": request.date,
         "time_slot": request.time_slot
     }
@@ -64,8 +68,8 @@ async def resolve_conflict(
     await mongo_db.substitutions_collection.insert_one(substitution_record)
 
     # Use .get() with ID fallback to guard against teacher documents missing a 'name' field.
-    absent_name = absent_teacher.get("name") or absent_teacher.get("id", request.absent_teacher_id)
-    substitute_name = substitute.get("name") or substitute.get("id", "Unknown")
+    absent_name = absent_teacher.get("full_name") or absent_teacher.get("name") or request.absent_teacher_id
+    substitute_name = substitute.get("full_name") or substitute.get("name") or substitute_tid
     alert_message = {
         "type": "alert",
         "message": f"Substitute {substitute_name} assigned for {absent_name} at {request.time_slot}."
@@ -74,7 +78,7 @@ async def resolve_conflict(
 
     return {
         "status": "success",
-        "substitute_teacher_id": substitute["id"],
+        "substitute_teacher_id": substitute_tid,
         "message": alert_message["message"],
         "subject_compatibility_score": substitute.get("subject_compatibility_score", 0.75),
         "suitability_score": substitute.get("suitability_score", 1.0),

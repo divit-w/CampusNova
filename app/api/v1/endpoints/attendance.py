@@ -143,9 +143,14 @@ async def faculty_clock_in(
     file: UploadFile = File(...),
     current_user: dict = Depends(require_roles(["teacher", "admin"]))
 ):
-    # 1. Geofence Check
+    # 1. Geofence Check and Spoofing Mitigation
+    client_ip = request.client.host if request.client else "unknown"
     distance = calculate_distance_meters(latitude, longitude, TARGET_LAT, TARGET_LON)
+    
+    spoofing_flag = False
     if distance > MAX_RADIUS_M:
+        logger.warning(f"[SPOOFING_FLAG] Out of bounds clock-in attempt from IP: {client_ip}, Dist: {distance}m")
+        spoofing_flag = True
         raise HTTPException(
             status_code=403, 
             detail=f"Outside geofence. Distance: {int(distance)}m"
@@ -163,10 +168,17 @@ async def faculty_clock_in(
         raise HTTPException(status_code=400, detail="Invalid liveness check")
         
     # 5. Insert Attendance
+    teacher_id = current_user["id"]
+    if current_user.get("role") == "teacher":
+        t_doc = await mongo_db.teachers_collection.find_one({"email": current_user.get("email")})
+        if t_doc: teacher_id = t_doc.get("teacher_id")
+
     doc = {
-        "teacher_id": current_user["id"],
+        "teacher_id": teacher_id,
         "coordinates": {"lat": latitude, "lon": longitude},
-        "timestamp": datetime.now(timezone.utc)
+        "timestamp": datetime.now(timezone.utc),
+        "client_ip": client_ip,
+        "spoofing_flag": spoofing_flag
     }
     
     await mongo_db.faculty_attendance_collection.insert_one(doc)
@@ -218,6 +230,23 @@ async def sync_bulk(
     request: SyncBulkRequest,
     current_user: dict = Depends(require_roles(["teacher", "admin"]))
 ):
+    teacher_id = current_user.get("id")
+    if current_user.get("role") == "teacher":
+        teacher_doc = await mongo_db.teachers_collection.find_one({"email": current_user.get("email")})
+        if not teacher_doc:
+            raise HTTPException(status_code=403, detail="Teacher profile not found.")
+        teacher_id = teacher_doc.get("teacher_id")
+        
+        class_doc = await mongo_db.classes_collection.find_one({
+            "teacher_id": teacher_id,
+            "$or": [
+                {"class_id": request.class_section},
+                {"name": request.class_section}
+            ]
+        })
+        if not class_doc:
+            raise HTTPException(status_code=403, detail="Teacher is not assigned to this class section.")
+
     operations = []
     for record in request.records:
         operations.append(
@@ -225,7 +254,7 @@ async def sync_bulk(
                 {"student_id": record.student_id, "date": request.date},
                 {"$set": {
                     "status": record.status,
-                    "teacher_id": current_user["id"],
+                    "teacher_id": teacher_id,
                     "updated_at": datetime.now(timezone.utc)
                 }},
                 upsert=True
@@ -429,6 +458,23 @@ async def finalize_bulk(
     request: FinalizeBulkAttendanceRequest,
     current_user: dict = Depends(require_roles(["teacher", "admin"]))
 ):
+    teacher_id = current_user.get("id")
+    if current_user.get("role") == "teacher":
+        teacher_doc = await mongo_db.teachers_collection.find_one({"email": current_user.get("email")})
+        if not teacher_doc:
+            raise HTTPException(status_code=403, detail="Teacher profile not found.")
+        teacher_id = teacher_doc.get("teacher_id")
+        
+        class_doc = await mongo_db.classes_collection.find_one({
+            "teacher_id": teacher_id,
+            "$or": [
+                {"class_id": request.class_section},
+                {"name": request.class_section}
+            ]
+        })
+        if not class_doc:
+            raise HTTPException(status_code=403, detail="Teacher is not assigned to this class section.")
+
     operations = []
     
     for record in request.records:
@@ -440,7 +486,7 @@ async def finalize_bulk(
                 {"student_id": record.student_id, "date": request.date},
                 {"$set": {
                     "status": record.status,
-                    "teacher_id": current_user["id"],
+                    "teacher_id": teacher_id,
                     "updated_at": datetime.now(timezone.utc),
                     "source": "bulk_ocr_batch",
                     "batch_id": request.batch_id
@@ -462,7 +508,7 @@ async def finalize_bulk(
         "date": request.date,
         "class_section": request.class_section,
         "processed_at": datetime.now(timezone.utc),
-        "approved_by": current_user["id"],
+        "approved_by": teacher_id,
         "records_written": len(operations),
         "total_submitted": len(request.records)
     }
