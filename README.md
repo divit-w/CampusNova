@@ -58,61 +58,61 @@ We built a stunning, glassmorphism-inspired UI designed for speed, clarity, and 
 ### Landing Page & Auth
 Secure, seamless onboarding into the institutional ecosystem.
 <div align="center">
-  <img src="./screenshots/landing%20page.jpg" alt="Landing Page" width="100%" />
+  <img src="./screenshots/landing%20page.png" alt="Landing Page" width="100%" />
 </div>
 
 ### Operations Dashboard
 A high-altitude, real-time telemetry view of campus health, attendance, and logistics.
 <div align="center">
-  <img src="./screenshots/dashboard.jpg" alt="Dashboard" width="100%" />
+  <img src="./screenshots/dashboard.png" alt="Dashboard" width="100%" />
 </div>
 
 ### AI Command Center
 Execute natural language prompts to perform complex administrative actions instantly.
 <div align="center">
-  <img src="./screenshots/ai%20command.jpg" alt="AI Command" width="100%" />
+  <img src="./screenshots/ai%20command.png" alt="AI Command" width="100%" />
 </div>
 
 ### Timetable Engine (CP-SAT)
 Watch the algorithmic solver generate mathematically perfect, conflict-free schedules in seconds.
 <div align="center">
-  <img src="./screenshots/timetable.jpg" alt="Timetable Optimizer" width="100%" />
+  <img src="./screenshots/timetable.png" alt="Timetable Optimizer" width="100%" />
 </div>
 
 ### Edge AI Attendance
 Geofenced, liveness-verified clock-ins for faculty and staff.
 <div align="center">
-  <img src="./screenshots/attendance.jpg" alt="Attendance & Liveness" width="100%" />
+  <img src="./screenshots/attendance.png" alt="Attendance & Liveness" width="100%" />
 </div>
 
 ### Document Intake & OCR
 Drag and drop messy handwritten forms; get structured, verified JSON data back.
 <div align="center">
-  <img src="./screenshots/documents.jpg" alt="Vision OCR" width="100%" />
+  <img src="./screenshots/documents.png" alt="Vision OCR" width="100%" />
 </div>
 
 ### Smart Transport
 Visualize the K-Means clustered stops and optimized fleet routing paths.
 <div align="center">
-  <img src="./screenshots/transport.jpg" alt="Transport Optimizer" width="100%" />
+  <img src="./screenshots/transport.png" alt="Transport Optimizer" width="100%" />
 </div>
 
 ### RAG Knowledge Base
 Ask questions in plain English. Get answers grounded in your exact institutional policies.
 <div align="center">
-  <img src="./screenshots/knowledge.jpg" alt="Knowledge Chat" width="100%" />
+  <img src="./screenshots/knowledge.png" alt="Knowledge Chat" width="100%" />
 </div>
 
 ### Vector Document Library
 Manage the chunks and embeddings stored inside the local ChromaDB vector store.
 <div align="center">
-  <img src="./screenshots/doc%20library.jpg" alt="Doc Library" width="100%" />
+  <img src="./screenshots/doc%20library.png" alt="Doc Library" width="100%" />
 </div>
 
 ### User Management
 Comprehensive RBAC (Role-Based Access Control) for students, teachers, and administrators.
 <div align="center">
-  <img src="./screenshots/user%20management.jpg" alt="User Management" width="100%" />
+  <img src="./screenshots/user%20management.png" alt="User Management" width="100%" />
 </div>
 
 ---
