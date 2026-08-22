@@ -198,11 +198,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <p className="mt-6 text-pretty text-center text-xs leading-relaxed text-muted-foreground">
-            Connected to the CampusNova API. Set{" "}
-            <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">NEXT_PUBLIC_API_URL</code>{" "}
-            to point at your backend.
-          </p>
+
         </motion.div>
       </section>
       </main>
