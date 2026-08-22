@@ -161,6 +161,9 @@ export const api = {
   async generateTimetable(payload: TimetableConstraintPayload): Promise<GenerateJobAck> {
     return request<GenerateJobAck>("/timetable/generate", { method: "POST", body: payload })
   },
+  async optimizeTimetable(payload: TimetableConstraintPayload): Promise<GenerateJobAck> {
+    return this.generateTimetable(payload)
+  },
   async timetableStatus(jobId: string): Promise<TimetableJob> {
     return request<TimetableJob>(`/timetable/status/${jobId}`)
   },

@@ -525,16 +525,9 @@ async def query_knowledge(request: QueryRequest):
     semantic_hits = []
     
     try:
-        # Generate query embeddings (if API key / credits are available)
-        embed_resp = await openai_client.embeddings.create(
-            input=[request.query],
-            model=settings.EMBEDDING_MODEL
-        )
-        query_embedding = embed_resp.data[0].embedding
-        
         # ── Stage 1: Semantic vector search ───────────────────────────────
         results = collection.query(
-            query_embeddings=[query_embedding],
+            query_texts=[request.query],
             n_results=10,
             include=["documents", "metadatas", "distances"],
         )

@@ -48,7 +48,7 @@ async def check_liveness(base64_image: str) -> bool:
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": "openrouter/free",
+                    "model": "nvidia/nemotron-nano-12b-v2-vl:free",
                     "messages": [
                         {
                             "role": "user",
