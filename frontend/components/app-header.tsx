@@ -40,9 +40,8 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
     return () => document.removeEventListener("mousedown", onClick)
   }, [])
 
-  const initials = user?.full_name
-    ? user.full_name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
-    : "U"
+  const displayName = "Admin"
+  const initials = "A"
 
   return (
     <header className="glass-surface sticky top-0 z-30 flex h-16 items-center gap-3 px-4 md:px-6">
@@ -66,7 +65,7 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
             transition={easeOutSoft}
             className="truncate text-lg font-semibold tracking-tight"
           >
-            {(pathname === '/' || pathname === '/dashboard') ? `Good to see you, ${user?.full_name?.split(" ")[0] || "admin"}` : titleForPath(pathname)}
+            {(pathname === '/' || pathname === '/dashboard') ? `Good to see you, ${displayName}.` : titleForPath(pathname)}
           </motion.h1>
         </AnimatePresence>
       </div>
@@ -81,7 +80,7 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
           </span>
           <span className="hidden text-left sm:block">
             <span className="block max-w-[140px] truncate text-sm font-medium leading-tight">
-              {user?.full_name ?? "User"}
+              {displayName}
             </span>
           </span>
           <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", menuOpen && "rotate-180")} />
@@ -101,7 +100,7 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
                   {initials}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium leading-tight">{user?.full_name}</p>
+                  <p className="truncate text-sm font-medium leading-tight">{displayName}</p>
                   <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </div>
