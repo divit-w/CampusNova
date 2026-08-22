@@ -28,6 +28,21 @@ export function DocumentUpload() {
     setQueue((prev) => [...prev, ...newItems])
   }
 
+  const handleJudgeSample = async (level: 1 | 2 | 3) => {
+    try {
+      const filename = `lvl${level}.jpg`;
+      const response = await fetch(`/samples/${filename}`);
+      const blob = await response.blob();
+      const file = new File([blob], filename, { type: "image/jpeg" });
+      
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      handlePickFiles(dt.files);
+    } catch (error) {
+      console.error("Failed to load sample", error);
+    }
+  };
+
   const processBatch = async () => {
     const pendingItems = queue.filter(q => q.status === "pending")
     if (!pendingItems.length) return
@@ -141,6 +156,24 @@ export function DocumentUpload() {
           </div>
         </div>
       )}
+
+      {/* Judge Trial Section */}
+      <div className="mt-2 flex flex-col items-center justify-center gap-3 rounded-xl border border-white/10 bg-black/20 p-4 backdrop-blur-md">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70 text-center">
+          Judge Trial Samples: Click to auto-test OCR accuracy across different difficulty levels.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => handleJudgeSample(1)} className="text-xs bg-white/5 border-white/10 hover:bg-white/10">
+            Lvl 1: Digital/Clean
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handleJudgeSample(2)} className="text-xs bg-white/5 border-white/10 hover:bg-white/10">
+            Lvl 2: Neat Handwriting
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handleJudgeSample(3)} className="text-xs bg-white/5 border-white/10 hover:bg-white/10">
+            Lvl 3: Crazy Handwriting
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
