@@ -66,7 +66,7 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
             transition={easeOutSoft}
             className="truncate text-lg font-semibold tracking-tight"
           >
-            {titleForPath(pathname)}
+            {(pathname === '/' || pathname === '/dashboard') ? `Good to see you, ${user?.full_name?.split(" ")[0] || "admin"}` : titleForPath(pathname)}
           </motion.h1>
         </AnimatePresence>
       </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { AnimatePresence, motion } from "framer-motion"
 import { Camera, CheckCircle2, MapPin, ShieldCheck, UserRoundCheck, X, RefreshCcw, Sun, ScanFace, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -38,6 +39,11 @@ export function FacultyClockIn() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<ClockInResponse | null>(null)
   const [error, setError] = useState<unknown>(null)
+
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const [isCameraOpen, setIsCameraOpen] = useState(false)
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null)
@@ -300,9 +306,10 @@ export function FacultyClockIn() {
 
       {error ? <div className="mt-2"><ErrorState error={error} onRetry={startCamera} /></div> : null}
 
-      <AnimatePresence>
-        {isCameraOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+      {mounted && typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isCameraOpen && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="relative w-full max-w-sm h-[520px] max-h-[85vh] flex flex-col overflow-hidden rounded-2xl border border-white/20 bg-background/95 shadow-2xl">
               
               {/* Fixed Header */}
@@ -401,8 +408,10 @@ export function FacultyClockIn() {
 
             </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </Card>
   )
 }

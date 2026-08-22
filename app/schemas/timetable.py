@@ -7,30 +7,31 @@ class HardConstraint(str, Enum):
     MAX_HOURS_RESPECTED = "max_hours_respected"
 
 class Teacher(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
     id: str
     name: str
     max_hours: int = Field(gt=0)
 
 class Room(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
     id: str
     capacity: int = Field(gt=0)
 
 class Subject(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
     id: str
     name: str
     required_weekly_hours: int = Field(gt=0)
+    qualified_teachers: List[str] = []
 
 class StudentCohort(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
     id: str
     name: str
     student_count: int = Field(gt=0)
 
 class FixedSlotRequirement(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
     subject_id: str
     cohort_id: str
     day: int = Field(ge=0)
@@ -38,7 +39,7 @@ class FixedSlotRequirement(BaseModel):
     room_id: Optional[str] = None
 
 class TimetableConstraintPayload(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
     days_per_week: int = Field(gt=0, le=7)
     periods_per_day: int = Field(gt=0, le=24)
     teachers: List[Teacher]
