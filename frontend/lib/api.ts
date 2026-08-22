@@ -263,7 +263,7 @@ export const api = {
     const fd = new FormData()
     fd.append("file", file)
     const controller = new AbortController()
-    const id = setTimeout(() => controller.abort(), 30000)
+    const id = setTimeout(() => controller.abort(), 90000)
     try {
       return await request<DocumentExtractResponse>("/documents/extract", { method: "POST", formData: fd, signal: controller.signal })
     } finally {

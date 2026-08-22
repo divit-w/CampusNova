@@ -175,8 +175,21 @@ export default function DocumentsPage() {
       setProgress((p) => (p < 88 ? p + (88 - p) * 0.12 + 1 : p))
     }, 250)
 
+    const runExtraction = async (fileToExtract: File, retryCount = 0): Promise<DocumentExtractResponse> => {
+      try {
+        return await api.extractDocument(fileToExtract)
+      } catch (err) {
+        if (retryCount < 1) {
+          console.log("Local AI cold start detected or timeout. Retrying silently...")
+          await new Promise(resolve => setTimeout(resolve, 2000))
+          return runExtraction(fileToExtract, retryCount + 1)
+        }
+        throw err
+      }
+    }
+
     try {
-      const res = await api.extractDocument(file)
+      const res = await runExtraction(file)
       setProgress(100)
       setData(res)
       setReviewed(false)
