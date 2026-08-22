@@ -1,3 +1,5 @@
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
 import asyncio
 from app.services.auth_service import create_user, get_user_by_email
 
