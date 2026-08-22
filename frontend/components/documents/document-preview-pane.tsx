@@ -121,6 +121,13 @@ export function DocumentPreviewPane({
         </AnimatePresence>
       </div>
 
+      {/* Judge Trial Disclaimer */}
+      <div className="mt-4 text-center">
+        <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/10 rounded-lg p-3 inline-block">
+          <span className="font-semibold text-primary">Judge Trial Note:</span> Sample test documents (Clean, Neat, and Messy handwriting) are located in the <code className="bg-background px-1 py-0.5 rounded text-primary">/public/samples/</code> folder of the GitHub repository. Please download and upload them here to simulate the OCR engine.
+        </p>
+      </div>
+
       <AnimatePresence>
         {extracting && (
           <motion.div

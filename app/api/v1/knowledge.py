@@ -182,18 +182,27 @@ async def get_document_status(
     }
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=4), reraise=True)
 async def call_llm(messages: list, model: str):
-    response = await openai_client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=0.1,
-        response_format={"type": "json_object"}
-    )
-    return response
+    try:
+        response = await openai_client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=0.1,
+            response_format={"type": "json_object"}
+        )
+        return response
+    except Exception as e:
+        if "response_format" in str(e).lower() or "400" in str(e):
+            return await openai_client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.1,
+            )
+        raise e
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=4), reraise=True)
 async def call_llm_text(messages: list, model: str):
     """Like call_llm but without forcing JSON mode.
 
@@ -241,8 +250,7 @@ async def classify_query_intent(query: str) -> Literal["SEARCH", "SUMMARIZE"]:
     )
     try:
         router_resp = await openai_client.chat.completions.create(
-            model=settings.EMBEDDING_MODEL.replace("text-embedding-", "gpt-").split("/")[-1]
-            if "text-embedding" in settings.EMBEDDING_MODEL else "openai/gpt-4o-mini",
+            model="openrouter/free",
             messages=[
                 {"role": "system", "content": router_prompt},
                 {"role": "user", "content": query},
@@ -251,9 +259,10 @@ async def classify_query_intent(query: str) -> Literal["SEARCH", "SUMMARIZE"]:
             max_tokens=5,
         )
         label = (router_resp.choices[0].message.content or "").strip().upper()
-        if label in ("SEARCH", "SUMMARIZE"):
-            logger.debug("Intent classifier → %s for query %r", label, query)
-            return label  # type: ignore[return-value]
+        if "SUMMARIZE" in label or "SUMMARY" in label:
+            return "SUMMARIZE"
+        if "SEARCH" in label:
+            return "SEARCH"
     except Exception as exc:
         logger.warning("Intent LLM failed (%s) — falling back to regex heuristic.", exc)
 
@@ -512,37 +521,27 @@ async def query_knowledge(request: QueryRequest):
     if intent == "SUMMARIZE":
         return await _execute_summarize_path(request.query)
     
+    collection = chroma_db.get_or_create_collection("student_documents")
+    semantic_hits = []
+    
     try:
-        # Generate query embeddings
-        embed_resp = await openai_client.embeddings.create(
-            input=[request.query],
-            model=settings.EMBEDDING_MODEL
-        )
-        query_embedding = embed_resp.data[0].embedding
-        
         # ── Stage 1: Semantic vector search ───────────────────────────────
-        # Fetch a wider candidate pool (top 10) so RRF has more material to
-        # rerank; the merge step is the quality gate, not n_results alone.
-        collection = chroma_db.get_or_create_collection("student_documents")
         results = collection.query(
-            query_embeddings=[query_embedding],
+            query_texts=[request.query],
             n_results=10,
             include=["documents", "metadatas", "distances"],
         )
+        sem_ids       = results.get("ids", [[]])[0]
+        sem_documents = results.get("documents", [[]])[0]
+        sem_metadatas = results.get("metadatas", [[]])[0]
+        sem_distances = results.get("distances", [[]])[0]
+
+        semantic_hits = [
+            {"id": doc_id, "document": doc, "metadata": meta, "distance": dist}
+            for doc_id, doc, meta, dist in zip(sem_ids, sem_documents, sem_metadatas, sem_distances)
+        ]
     except Exception as e:
-        logger.error(f"Database error during query: {e}")
-        raise HTTPException(status_code=503, detail="Database service temporarily unavailable")
-
-    # Flatten semantic results into the common hit schema used by _rrf_merge.
-    sem_ids       = results.get("ids", [[]])[0]
-    sem_documents = results.get("documents", [[]])[0]
-    sem_metadatas = results.get("metadatas", [[]])[0]
-    sem_distances = results.get("distances", [[]])[0]
-
-    semantic_hits = [
-        {"id": doc_id, "document": doc, "metadata": meta, "distance": dist}
-        for doc_id, doc, meta, dist in zip(sem_ids, sem_documents, sem_metadatas, sem_distances)
-    ]
+        logger.warning(f"Vector search bypassed ({e}) — utilizing TF-IDF keyword search fallback.")
 
     # ── Stage 2: Keyword (TF-IDF) search ──────────────────────────────────
     keyword_hits = _keyword_search(collection, request.query, n_results=10)
@@ -565,10 +564,30 @@ async def query_knowledge(request: QueryRequest):
     seen_parents = set()
 
     for hit in merged_hits:
-        meta   = hit["metadata"]
+        doc_id = hit["id"]
+        meta   = hit["metadata"] or {}
         child_doc = hit["document"]
         rrf    = hit["rrf_score"]
         confidence = min(rrf / _RRF_MAX, 1.0)
+
+        # Check if it's an OCR document (has document_category but no chunk_index)
+        if "document_category" in meta and "chunk_index" not in meta:
+            # It's an OCR doc. Fetch full fields from MongoDB to give LLM maximum context.
+            kb_doc = await mongo_db.knowledge_collection.find_one({"document_id": doc_id})
+            full_context = child_doc
+            if kb_doc and "extracted_fields" in kb_doc:
+                fields = "\n".join([f"- {f.get('key')}: {f.get('value')}" for f in kb_doc["extracted_fields"]])
+                full_context += f"\n\nExtracted Details:\n{fields}"
+                
+            context_chunks.append(f"Document Category: {meta.get('document_category')} (Doc: {doc_id}):\n{full_context}")
+            citations.append(RAGCitation(
+                document_id=doc_id,
+                source_file=f"Scanned {meta.get('document_category', 'Document')}",
+                chunk_index=0,
+                confidence_score=round(confidence, 4),
+                extracted_text=child_doc,
+            ))
+            continue
 
         # Hierarchical retrieval: feed the LLM the full parent context block,
         # but deduplicate so we don't inject the same 2000-char block multiple times.
@@ -578,16 +597,16 @@ async def query_knowledge(request: QueryRequest):
         if parent_id:
             if parent_id not in seen_parents:
                 seen_parents.add(parent_id)
-                context_chunks.append(f"Context Block (Doc: {meta['document_id']}):\n{parent_text}")
+                context_chunks.append(f"Context Block (Doc: {meta.get('document_id', doc_id)}):\n{parent_text}")
         else:
             # Fallback for old flat chunks
-            context_chunks.append(f"Chunk {meta['chunk_index']} (Doc: {meta['document_id']}):\n{child_doc}")
+            context_chunks.append(f"Chunk {meta.get('chunk_index', 0)} (Doc: {meta.get('document_id', doc_id)}):\n{child_doc}")
 
         # The citation highlights the specific child chunk that matched
         citations.append(RAGCitation(
-            document_id=meta["document_id"],
+            document_id=meta.get("document_id", doc_id),
             source_file=meta.get("filename", "Unknown Document"),
-            chunk_index=meta["chunk_index"],
+            chunk_index=meta.get("chunk_index", 0),
             confidence_score=round(confidence, 4),
             extracted_text=child_doc,
         ))
@@ -627,12 +646,13 @@ async def query_knowledge(request: QueryRequest):
             logger.error(f"Secondary LLM also failed: {secondary_e}")
             raise HTTPException(status_code=500, detail="LLM service unavailable")
             
-    # Three-tier JSON fallback parser
-    # Tier 1 — strict: LLM returned a well-formed JSON object.
-    # Tier 2 — lenient: LLM returned prose with an embedded JSON object; extract it.
-    # Tier 3 — plain-text: LLM refused / returned a safety message; surface it as-is.
+    raw_content = (resp.choices[0].message.content or "").strip()
+    
+    # Strip guardrail prefix if present (e.g., "User Safety: safe\n...")
+    if raw_content.lower().startswith("user safety: safe"):
+        raw_content = re.sub(r"^user\s+safety:\s*safe\s*", "", raw_content, flags=re.IGNORECASE).strip()
+
     content: dict = {}
-    raw_content = resp.choices[0].message.content or ""
     try:
         content = json.loads(raw_content)
         answer = content.get("answer", raw_content)
@@ -647,31 +667,18 @@ async def query_knowledge(request: QueryRequest):
                 content = {"status": "success", "answer": raw_content}
                 answer = raw_content
         else:
-            # Tier 3 — plain text (refusals, safety messages, etc.)
-            logger.warning(
-                "LLM returned non-JSON content for query %r — surfacing as plain-text answer. Raw: %r",
-                request.query,
-                raw_content,
-            )
             content = {"status": "success", "answer": raw_content}
             answer = raw_content
 
     # ── Safety-refusal guard ───────────────────────────────────────────────
-    # Some OpenRouter models prepend internal safety annotations or refusal
-    # strings instead of (or before) the JSON payload.  Detect these and
-    # replace them with a clean, user-facing message rather than leaking
-    # internal system strings into the UI.
-    _SAFETY_SIGNALS = (
-        "user safety:",
-        "i'm sorry, i can't",
-        "i cannot assist",
-        "i'm unable to",
-        "i'm not able to",
-        "as an ai",
-        "this request has been flagged",
-        "content policy",
+    _ACTUAL_REFUSALS = (
+        "user safety: unsafe",
+        "i'm sorry, i can't assist",
+        "i cannot fulfill this request",
+        "violates content policy",
+        "against policy",
     )
-    if any(sig in answer.lower() for sig in _SAFETY_SIGNALS):
+    if any(sig in answer.lower() for sig in _ACTUAL_REFUSALS):
         logger.warning(
             "Safety refusal detected for query %r. Raw answer: %r", request.query, answer
         )
