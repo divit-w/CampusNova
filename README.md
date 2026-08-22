@@ -1,6 +1,6 @@
 <div align="center">
   
-<img src="./screenshots/logo.png" alt="CampusNova Logo" width="150" />
+<img src="./logo.png" alt="CampusNova Logo" width="150" />
 
 # CampusNova: Intelligent Campus Operations
 
