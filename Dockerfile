@@ -3,13 +3,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy requirements file
-COPY requirements.txt .
+COPY backend/requirements.txt .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app/ ./app/
+COPY backend/app/ ./app/
 COPY scripts/ ./scripts/
 
 # Expose port
