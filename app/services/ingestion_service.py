@@ -101,9 +101,14 @@ class IngestionService:
                 )
                 return [d.embedding for d in resp.data]
     
-            batches = [chunks[i : i + EMBED_BATCH_SIZE] for i in range(0, len(chunks), EMBED_BATCH_SIZE)]
-            batch_results = await asyncio.gather(*[embed_batch(b) for b in batches])
-            embeddings = [vec for batch in batch_results for vec in batch]
+            embeddings = None
+            try:
+                batches = [chunks[i : i + EMBED_BATCH_SIZE] for i in range(0, len(chunks), EMBED_BATCH_SIZE)]
+                batch_results = await asyncio.gather(*[embed_batch(b) for b in batches])
+                embeddings = [vec for batch in batch_results for vec in batch]
+            except Exception as e:
+                logger.warning(f"Embedding API failed ({e}). Adding documents to ChromaDB for lexical search.")
+                embeddings = None
             
             collection = chroma_db.get_or_create_collection("student_documents")
             
@@ -121,12 +126,19 @@ class IngestionService:
             
             child_documents = [d["child_text"] for d in chunks]
             
-            collection.add(
-                ids=ids,
-                embeddings=embeddings,
-                documents=child_documents,
-                metadatas=metadatas
-            )
+            if embeddings:
+                collection.add(
+                    ids=ids,
+                    embeddings=embeddings,
+                    documents=child_documents,
+                    metadatas=metadatas
+                )
+            else:
+                collection.add(
+                    ids=ids,
+                    documents=child_documents,
+                    metadatas=metadatas
+                )
             
             await mongo_db.knowledge_collection.update_one(
                 {"id": document_id},
