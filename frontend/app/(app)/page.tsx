@@ -22,7 +22,7 @@ export default function DashboardPage() {
   const { status, feed } = useAlerts()
   const isAdmin = user?.role === "admin"
   const { data: summary } = useDashboardSummary(isAdmin)
-  const firstName = user?.full_name?.split(" ")[0] ?? "there"
+  const firstName = "Admin"
 
   const timetableAgo = relativeTimeFromIso(summary?.timetable_generated_at)
   const timetableStatusText =
