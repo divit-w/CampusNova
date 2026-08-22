@@ -15,10 +15,10 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 
 const EXAMPLE_PROMPTS = [
-  "Show all teachers in the science department",
-  "List every cohort with more than 30 students",
-  "Which rooms are free during period 3?",
-  "Count the total number of active students",
+  "Show all students",
+  "Show all teachers",
+  "List all classes",
+  "Show today's attendance",
 ]
 
 type ViewState =
