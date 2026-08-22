@@ -21,17 +21,9 @@ class DocumentService:
             fields_text = ", ".join([f"{f.key}: {f.value}" for f in doc.extracted_fields])
             searchable_text = f"Category: {doc.document_category}. Summary: {doc.summary}. Details: {fields_text}"
             
-            # Generate correct 1536-dimensional embeddings matching settings.EMBEDDING_MODEL
-            embed_resp = await openai_client.embeddings.create(
-                input=[searchable_text],
-                model=settings.EMBEDDING_MODEL
-            )
-            embedding = embed_resp.data[0].embedding
-            
             collection.add(
                 ids=[document_id],
                 documents=[searchable_text],
-                embeddings=[embedding],
                 metadatas=[{
                     "document_category": doc.document_category,
                     "summary": doc.summary,

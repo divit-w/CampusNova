@@ -89,27 +89,8 @@ class IngestionService:
                 )
                 return {"document_id": document_id, "total_chunks": 0}
             
-            # ── Batched embedding ──────────────────────────────────────────────
-            EMBED_BATCH_SIZE = 20
-            EMBED_TIMEOUT_SECS = 30
-    
-            async def embed_batch(batch: list[dict]) -> list:
-                batch_texts = [d["child_text"] for d in batch]
-                resp = await asyncio.wait_for(
-                    client.embeddings.create(input=batch_texts, model=settings.EMBEDDING_MODEL),
-                    timeout=EMBED_TIMEOUT_SECS,
-                )
-                return [d.embedding for d in resp.data]
-    
+            # Use ChromaDB's default local embeddings instead of paid OpenRouter embeddings
             embeddings = None
-            try:
-                batches = [chunks[i : i + EMBED_BATCH_SIZE] for i in range(0, len(chunks), EMBED_BATCH_SIZE)]
-                batch_results = await asyncio.gather(*[embed_batch(b) for b in batches])
-                embeddings = [vec for batch in batch_results for vec in batch]
-            except Exception as e:
-                logger.warning(f"Embedding API failed ({e}). Adding documents to ChromaDB for lexical search.")
-                embeddings = None
-            
             collection = chroma_db.get_or_create_collection("student_documents")
             
             ids = [f"{document_id}_{d['chunk_index']}" for d in chunks]
