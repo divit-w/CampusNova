@@ -190,10 +190,9 @@ export const api = {
     if (date) fd.append("date", date)
     return request<ProcessSheetResponse>("/attendance/process-sheet", { method: "POST", formData: fd })
   },
-<<<<<<< Updated upstream
   async syncAttendanceRecords(date: string, records: ExtractedAttendanceRecord[]): Promise<SyncBulkResponse> {
     return request<SyncBulkResponse>("/attendance/sync-bulk", { method: "POST", body: { date, records } })
-=======
+  },
   async processBulkRegister(file: File): Promise<BulkAttendanceResponse> {
     const fd = new FormData()
     fd.append("file", file)
@@ -207,7 +206,6 @@ export const api = {
   },
   async finalizeBulkRegister(payload: FinalizeBulkAttendanceRequest): Promise<{ status: string; message: string; batch_id: string }> {
     return request<{ status: string; message: string; batch_id: string }>("/attendance/finalize-bulk", { method: "POST", body: payload })
->>>>>>> Stashed changes
   },
   async facultyClockIn(latitude: number, longitude: number, file: File): Promise<ClockInResponse> {
     const fd = new FormData()

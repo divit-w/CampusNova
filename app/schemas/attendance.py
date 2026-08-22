@@ -1,4 +1,4 @@
-from typing import List, Literal
+from typing import List, Literal, Optional, Dict
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -13,7 +13,6 @@ class BulkEdgeSyncRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     records: List[EdgeAttendancePayload]
 
-
 class StudentAttendanceSummaryResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
     student_id: str
@@ -22,7 +21,6 @@ class StudentAttendanceSummaryResponse(BaseModel):
     absent: int
     percentage: float
 
-<<<<<<< Updated upstream
 class ExtractedAttendanceRecord(BaseModel):
     model_config = ConfigDict(extra="ignore")
     student_id: str
@@ -33,8 +31,6 @@ class SyncBulkRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     date: str
     records: List[ExtractedAttendanceRecord]
-=======
-from typing import Optional, Dict
 
 class ValidationResult(BaseModel):
     passed: bool
@@ -75,4 +71,3 @@ class FinalizeBulkAttendanceRequest(BaseModel):
     date: str
     class_section: str
     records: List[ProcessedAttendanceRow]
->>>>>>> Stashed changes

@@ -6,13 +6,14 @@ logger = logging.getLogger(__name__)
 
 class OCRService:
     def __init__(self):
-        # Load the pre-trained Haar Cascade classifier for face detection
-        # OpenCV provides default XML files in its data path
-        try:
-            self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        except Exception as e:
-            logger.warning(f"Could not load face cascade: {e}")
-            self.face_cascade = None
+        # Load the pre-trained Haar Cascade classifier for face detection if supported
+        self.face_cascade = None
+        if hasattr(cv2, "CascadeClassifier") and hasattr(cv2, "data") and hasattr(cv2.data, "haarcascades"):
+            try:
+                cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+                self.face_cascade = cv2.CascadeClassifier(cascade_path)
+            except Exception:
+                self.face_cascade = None
 
     def redact_pii_from_image(self, image_bytes: bytes) -> bytes:
         """
