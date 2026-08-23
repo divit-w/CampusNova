@@ -203,12 +203,9 @@ async def lifespan(app: FastAPI):
                 # 3. Auto-seed full demo data (faculty, students, cohorts, timetables, attendance) if missing
                 teachers_count = await mongo_db.teachers_collection.count_documents({"university_id": settings.DEMO_UNIVERSITY_ID})
                 if teachers_count < 1:
-                    scripts_dir = str(PROJECT_ROOT / "scripts")
-                    if scripts_dir not in sys.path:
-                        sys.path.append(scripts_dir)
                     try:
-                        from seed_demo_data import seed_database
-                        await seed_database()
+                        from app.services.seed_demo_service import seed_canonical_demo_data
+                        await seed_canonical_demo_data()
                         logger.info("Auto-seeded canonical demo data successfully.")
                     except Exception as demo_seed_err:
                         logger.warning("Auto-seed demo data error: %s", demo_seed_err)
