@@ -215,7 +215,7 @@ Automated conflict resolution allows administrators to generate semester timetab
 ### 3. Edge AI Faculty Liveness Portal
 Our Zero-Hardware architecture eliminates the need for expensive physical biometric kiosks, transforming any standard mobile device into a secure biometric terminal via browser-based Edge AI. 
 
-<div align="center"><img src="./screenshots/faculty_attendence_demo.jpg" alt="Edge AI Liveness HUD" width="100%" /></div>
+<div align="center"><img src="screenshots/faculty_attendence_demo.jpg" alt="Edge AI Liveness HUD" width="100%" /></div>
 
 **Multi-Layer Security Validation:**
 *   **Spatial Validation:** Mathematically computes distance to the campus centroid utilizing the Haversine formula for strict GPS geofencing.
@@ -225,7 +225,7 @@ Our Zero-Hardware architecture eliminates the need for expensive physical biomet
 ### 4. Centralized Attendance & Bulk OCR Engine
 The institutional command center for all student and faculty attendance logistics.
 
-<div align="center"><img src="./screenshots/faculty_attendence.jpg" alt="Attendance Dashboard" width="100%" /></div>
+<div align="center"><img src="screenshots/faculty_attendence.jpg" alt="Attendance Dashboard & Geofence" width="100%" /></div>
 
 **Core Features:**
 *   **Unified Dashboard:** Provides a high-level overview of daily present, absent, and excused metrics.
