@@ -28,6 +28,7 @@ const CSP = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  turbopack: {},
   webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
