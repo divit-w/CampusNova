@@ -2,7 +2,7 @@ services:
   - type: web
     name: campusnova-api-staging
     runtime: docker
-    plan: starter
+    plan: free
     region: singapore
     healthCheckPath: /health
     autoDeploy: false
@@ -24,14 +24,11 @@ services:
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: CHROMA_PERSIST_DIR
-        value: /app/runtime/chroma
+        value: /tmp/chroma
       - key: UPLOADS_DIR
-        value: /app/runtime/uploads
+        value: /tmp/uploads
       - key: SEED_DEMO_DATA
         value: "false"
       - key: LOG_LEVEL
         value: INFO
-    disk:
-      name: campusnova-runtime-staging
-      mountPath: /app/runtime
-      sizeGB: 1
+
