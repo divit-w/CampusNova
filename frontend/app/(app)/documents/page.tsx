@@ -163,14 +163,30 @@ export default function DocumentsPage() {
     sessionStorage.removeItem("ocr_reviewed")
   }
 
+  const [retryCountdown, setRetryCountdown] = useState<number | null>(null)
+  const [isRateLimited, setIsRateLimited] = useState(false)
+
+  useEffect(() => {
+    if (retryCountdown === null) return
+    if (retryCountdown <= 0) {
+      setRetryCountdown(null)
+      setIsRateLimited(false)
+      if (file) void extract()
+      return
+    }
+    const t = setTimeout(() => setRetryCountdown((c) => (c ? c - 1 : null)), 1000)
+    return () => clearTimeout(t)
+  }, [retryCountdown, file])
+
   async function extract() {
     if (!file || extracting) return
     setExtracting(true)
     setError(null)
+    setIsRateLimited(false)
+    setRetryCountdown(null)
     setProgress(8)
 
-    // Simulate a determinate progress bar — the browser fetch API doesn't expose
-    // upload/processing progress, so we ease toward 90% while awaiting the response.
+    // Simulate a determinate progress bar
     progressTimer.current = setInterval(() => {
       setProgress((p) => (p < 88 ? p + (88 - p) * 0.12 + 1 : p))
     }, 250)
@@ -178,9 +194,16 @@ export default function DocumentsPage() {
     const runExtraction = async (fileToExtract: File, retryCount = 0): Promise<DocumentExtractResponse> => {
       try {
         return await api.extractDocument(fileToExtract)
-      } catch (err) {
+      } catch (err: any) {
+        const errMsg = String(err?.message || err?.detail || err || "").toLowerCase()
+        const is429 = errMsg.includes("429") || errMsg.includes("rate") || errMsg.includes("limit") || errMsg.includes("too many")
+        
+        if (is429 && retryCount < 2) {
+          setIsRateLimited(true)
+          setRetryCountdown(5)
+          throw new Error("OCR service is experiencing high demand. Automatic retry scheduled.")
+        }
         if (retryCount < 1) {
-          console.log("Local AI cold start detected or timeout. Retrying silently...")
           await new Promise(resolve => setTimeout(resolve, 2000))
           return runExtraction(fileToExtract, retryCount + 1)
         }
@@ -193,6 +216,8 @@ export default function DocumentsPage() {
       setProgress(100)
       setData(res)
       setReviewed(false)
+      setIsRateLimited(false)
+      setRetryCountdown(null)
     } catch (err) {
       setError(err)
     } finally {
@@ -207,7 +232,6 @@ export default function DocumentsPage() {
       if (typeof fieldId === "number") {
         if (!prev.extracted_fields) return prev
         const newFields = [...prev.extracted_fields]
-        // Mark as High confidence because it was manually reviewed/edited by a human
         newFields[fieldId] = { ...newFields[fieldId], value, confidence: "High" }
         return { ...prev, extracted_fields: newFields }
       } else {
@@ -236,8 +260,8 @@ export default function DocumentsPage() {
     <div>
       <PageHeading
         icon={<ScanSearch className="h-5 w-5" />}
-        title={<span className="text-gradient-brand">Document Intake &amp; OCR</span>}
-        description="Digitize paper records — upload a scan, run OCR, then verify and approve extracted fields before they index into ChromaDB."
+        title={<span className="text-gradient-brand">Document Intelligence &amp; Verification</span>}
+        description="Institutional document pipeline: automated classification, entity validation against ERP registries, and cross-module operational action routing."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -267,8 +291,29 @@ export default function DocumentsPage() {
         </div>
       )}
 
+      {isRateLimited && (
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4">
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold text-amber-500">
+              Uploaded document is securely stored &amp; safe.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Vision OCR is rate-limited. Automatic retry in {retryCountdown ?? 5}s…
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => extract()}
+            disabled={extracting}
+            className="rounded-lg bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-500/30 dark:text-amber-400"
+          >
+            Retry Extraction Now
+          </button>
+        </div>
+      )}
+
       <AnimatePresence>
-        {error ? (
+        {error && !isRateLimited ? (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-4 rounded-xl glass-surface">
             <ErrorState error={error} onRetry={extract} />
           </motion.div>

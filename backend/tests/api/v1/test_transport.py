@@ -239,3 +239,70 @@ async def test_optimize_routes_422_missing_vehicles(mock_find_user, async_client
         headers={"Authorization": f"Bearer {admin_token()}"},
     )
     assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+@patch("app.api.v1.deps.mongo_db.users_collection.find_one", new_callable=AsyncMock)
+@patch("app.api.v1.endpoints.transport.mongo_db.transport_routes_collection.insert_one", new_callable=AsyncMock)
+async def test_optimize_routes_capacity_overflow_unassigned(mock_insert, mock_find_user, async_client):
+    """
+    When total vehicle capacity (2 x 3 = 6) < student count (10),
+    verify that:
+      1. Exactly 6 students are routed and 4 are unassigned.
+      2. No vehicle exceeds its capacity of 3.
+      3. Total routed + total unassigned == 10.
+    """
+    mock_find_user.return_value = {"id": "admin1", "role": "admin"}
+
+    payload = {
+        "vehicles": [
+            {"vehicle_id": "BUS-01", "capacity": 3, "start_location": [28.6304, 77.3711]},
+            {"vehicle_id": "BUS-02", "capacity": 3, "start_location": [28.6350, 77.3800]},
+        ],
+        "student_overrides": [
+            {"student_id": s["student_id"], "location": s["location"]}
+            for s in MOCK_STUDENTS
+        ],
+    }
+
+    resp = await async_client.post(
+        "/api/v1/transport/optimize-routes",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token()}"},
+    )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total_students_routed"] == 6
+    assert data["total_unassigned"] == 4
+    assert len(data["unassigned_students"]) == 4
+    assert data["total_vehicles_used"] == 2
+
+    # Verify no vehicle has > 3 students
+    for route in data["routes"]:
+        assert route["assigned_student_count"] <= 3
+
+
+@pytest.mark.asyncio
+@patch("app.api.v1.deps.mongo_db.users_collection.find_one", new_callable=AsyncMock)
+@patch("app.api.v1.endpoints.transport.mongo_db.transport_routes_collection.find_one", new_callable=AsyncMock)
+async def test_routes_summary_endpoint(mock_find_route, mock_find_user, async_client):
+    """Verifies routes-summary returns KPI aggregate fields."""
+    mock_find_user.return_value = {"id": "admin1", "role": "admin"}
+    mock_find_route.return_value = {
+        "total_vehicles_used": 4,
+        "total_students_routed": 152,
+        "total_unassigned": 0,
+        "generated_at": "2026-08-22T12:00:00Z",
+    }
+
+    resp = await async_client.get(
+        "/api/v1/transport/routes-summary",
+        headers={"Authorization": f"Bearer {admin_token()}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["has_plan"] is True
+    assert data["active_routes"] == 4
+    assert data["total_students_routed"] == 152
+    assert data["total_unassigned"] == 0

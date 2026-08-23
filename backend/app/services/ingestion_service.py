@@ -11,7 +11,7 @@ from app.schemas.knowledge import KnowledgeDocument
 
 client = AsyncOpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key=settings.OPENROUTER_API_KEY,
+    api_key=settings.OPENROUTER_API_KEY or "dummy_key",
 )
 
 class IngestionService:
@@ -77,14 +77,14 @@ class IngestionService:
             
         return chunks_data
 
-    async def process_and_store_pdf(self, file_bytes: bytes, filename: str, file_hash: str, document_id: str):
+    async def process_and_store_pdf(self, file_bytes: bytes, filename: str, file_hash: str, document_id: str, university_id: str = "demo-university"):
         try:
             text = self.extract_text(file_bytes)
             chunks = self.hierarchical_chunk_text(text)
             
             if not chunks:
                 await mongo_db.knowledge_collection.update_one(
-                    {"id": document_id},
+                    {"id": document_id, "university_id": university_id},
                     {"$set": {"indexing_status": "completed", "total_chunks": 0}}
                 )
                 return {"document_id": document_id, "total_chunks": 0}
@@ -96,7 +96,8 @@ class IngestionService:
             ids = [f"{document_id}_{d['chunk_index']}" for d in chunks]
             metadatas = [
                 {
-                    "document_id": document_id, 
+                    "document_id": document_id,
+                    "university_id": university_id,
                     "chunk_index": d["chunk_index"], 
                     "filename": filename,
                     "parent_id": f"{document_id}_{d['parent_id']}",
@@ -122,7 +123,7 @@ class IngestionService:
                 )
             
             await mongo_db.knowledge_collection.update_one(
-                {"id": document_id},
+                {"id": document_id, "university_id": university_id},
                 {"$set": {"indexing_status": "completed", "total_chunks": len(chunks)}}
             )
             return {"document_id": document_id, "total_chunks": len(chunks)}
@@ -130,14 +131,14 @@ class IngestionService:
         except ValueError as exc:
             # PyMuPDF structural failures
             await mongo_db.knowledge_collection.update_one(
-                {"id": document_id},
+                {"id": document_id, "university_id": university_id},
                 {"$set": {"indexing_status": "failed", "error_message": f"Invalid or unparsable PDF file format: {exc}"}}
             )
             raise
         except Exception as exc:
             # Embedding, ChromaDB, or Mongo failures
             await mongo_db.knowledge_collection.update_one(
-                {"id": document_id},
+                {"id": document_id, "university_id": university_id},
                 {"$set": {"indexing_status": "failed", "error_message": str(exc)}}
             )
             raise

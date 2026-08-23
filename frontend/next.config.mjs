@@ -1,3 +1,9 @@
+import path from "path"
+import { fileURLToPath } from "url"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
 // The FastAPI backend origin — used for the CSP connect-src allowlist below.
 // Falls back to the same dev default used by lib/config.ts.
 const API_ORIGIN =
@@ -22,6 +28,21 @@ const CSP = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  webpack: (config, { isServer }) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@vladmandic/human$": path.resolve(__dirname, "node_modules/@vladmandic/human/dist/human.esm.js"),
+    }
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      path: false,
+      crypto: false,
+      "@tensorflow/tfjs-node": false,
+      "@tensorflow/tfjs-node-gpu": false,
+    }
+    return config
+  },
   async headers() {
     return [
       {
@@ -36,7 +57,7 @@ const nextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(self), microphone=(), geolocation=(self)",
           },
           { key: "Content-Security-Policy-Report-Only", value: CSP },
         ],

@@ -28,12 +28,27 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+function formatDateDisplay(isoDate?: string): string {
+  if (!isoDate) return "—"
+  try {
+    const parts = isoDate.split("-")
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10)
+      const month = parseInt(parts[1], 10) - 1
+      const day = parseInt(parts[2], 10)
+      const d = new Date(year, month, day)
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    }
+  } catch (e) {}
+  return isoDate
+}
+
 /**
  * Drag-and-drop bulk sheet upload → POST /attendance/process-bulk-register.
  * The backend runs Vision OCR (OpenRouter) on the uploaded photo/PDF and
  * returns row-level validation data.
  */
-export function VisionUploadZone() {
+export function VisionUploadZone({ selectedDate }: { selectedDate?: string }) {
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -41,11 +56,18 @@ export function VisionUploadZone() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
+  
+  // Date Mismatch States
+  const [mismatchResolved, setMismatchResolved] = useState<boolean>(false)
+  const [dateChoice, setDateChoice] = useState<"detected" | "selected">("selected")
+  const [chosenDate, setChosenDate] = useState<string>("")
   const inputRef = useRef<HTMLInputElement>(null)
 
   function pickFile(f: File | undefined | null) {
     if (!f) return
     setResult(null)
+    setMismatchResolved(false)
+    setChosenDate("")
     setSuccessMsg(null)
     setError(null)
     setValidationError(null)
@@ -67,6 +89,8 @@ export function VisionUploadZone() {
     setLoading(true)
     setError(null)
     setSuccessMsg(null)
+    setMismatchResolved(false)
+    setChosenDate("")
     try {
       const res = await api.processBulkRegister(file)
       setResult(res)
@@ -80,16 +104,108 @@ export function VisionUploadZone() {
   function handleCancel() {
     setResult(null)
     setFile(null)
+    setMismatchResolved(false)
+    setChosenDate("")
   }
 
   function handleSuccess() {
     setResult(null)
     setFile(null)
+    setMismatchResolved(false)
+    setChosenDate("")
     setSuccessMsg("Attendance records finalized successfully.")
     setTimeout(() => setSuccessMsg(null), 5000)
   }
 
   if (result) {
+    const detectedDate = result.date || ""
+    const pageDate = selectedDate || new Date().toISOString().slice(0, 10)
+    const hasMismatch = Boolean(detectedDate && pageDate && detectedDate !== pageDate)
+
+    // Date Mismatch Intercept Dialog
+    if (hasMismatch && !mismatchResolved) {
+      return (
+        <Card className="flex flex-col p-6 lg:col-span-2 border-warning/40 bg-warning/[0.03] shadow-lg">
+          <div className="flex items-center gap-3 border-b border-border/60 pb-4">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-warning/15 text-warning">
+              <AlertTriangle className="h-5 w-5" />
+            </span>
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Attendance Date Mismatch</h3>
+              <p className="text-xs text-muted-foreground">
+                The date detected from the uploaded sheet differs from the currently selected page date.
+              </p>
+            </div>
+          </div>
+
+          <div className="my-5 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-border/80 bg-surface/60 p-4">
+              <span className="text-xs font-medium text-muted-foreground">Page Selected Date</span>
+              <p className="text-base font-semibold text-foreground mt-1">
+                {formatDateDisplay(pageDate)}
+              </p>
+              <span className="text-[11px] font-mono text-muted-foreground">{pageDate}</span>
+            </div>
+
+            <div className="rounded-xl border border-border/80 bg-surface/60 p-4">
+              <span className="text-xs font-medium text-muted-foreground">Detected from Register (OCR)</span>
+              <p className="text-base font-semibold text-primary mt-1">
+                {formatDateDisplay(detectedDate)}
+              </p>
+              <span className="text-[11px] font-mono text-muted-foreground">{detectedDate}</span>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-sm font-medium text-foreground mb-3">Which date should this batch use?</p>
+            <div className="flex flex-col gap-2.5">
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-border/60 hover:bg-accent/50 cursor-pointer transition-colors">
+                <input
+                  type="radio"
+                  name="dateChoice"
+                  value="detected"
+                  checked={dateChoice === "detected"}
+                  onChange={() => setDateChoice("detected")}
+                  className="h-4 w-4 text-primary"
+                />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Use detected date — {formatDateDisplay(detectedDate)}</p>
+                  <p className="text-xs text-muted-foreground">Mark attendance against the date printed on the uploaded register sheet.</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 p-3 rounded-lg border border-border/60 hover:bg-accent/50 cursor-pointer transition-colors">
+                <input
+                  type="radio"
+                  name="dateChoice"
+                  value="selected"
+                  checked={dateChoice === "selected"}
+                  onChange={() => setDateChoice("selected")}
+                  className="h-4 w-4 text-primary"
+                />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Use selected date — {formatDateDisplay(pageDate)}</p>
+                  <p className="text-xs text-muted-foreground">Override and mark attendance against the date currently active on the page.</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-center justify-between">
+            <Button variant="outline" onClick={handleCancel}>Cancel</Button>
+            <Button onClick={() => {
+              setChosenDate(dateChoice === "detected" ? detectedDate : pageDate)
+              setMismatchResolved(true)
+            }}>
+              Continue to Review
+            </Button>
+          </div>
+        </Card>
+      )
+    }
+
+    const finalBatchDate = chosenDate || detectedDate || pageDate
+
     return (
       <Card className="flex flex-col p-5 lg:col-span-2">
         <div className="mb-4 flex items-center gap-2.5">
@@ -101,7 +217,13 @@ export function VisionUploadZone() {
             <p className="text-xs text-muted-foreground">Verify extracted rows before committing to the database</p>
           </div>
         </div>
-        <BulkReviewTable data={result} onCancel={handleCancel} onSuccess={handleSuccess} />
+        <BulkReviewTable 
+          data={result} 
+          batchDate={finalBatchDate}
+          detectedDate={detectedDate}
+          onCancel={handleCancel} 
+          onSuccess={handleSuccess} 
+        />
       </Card>
     )
   }

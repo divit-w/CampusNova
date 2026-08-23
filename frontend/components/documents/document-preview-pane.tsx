@@ -85,7 +85,7 @@ export function DocumentPreviewPane({
               className="relative flex flex-1 flex-col"
             >
               <div className="relative flex-1 overflow-hidden rounded-xl bg-secondary/50">
-                {/* Uploaded scan preview — object URL, not a static asset */}
+                {/* Uploaded scan preview */}
                 <img src={previewUrl} alt="Uploaded document preview" className="h-full w-full object-contain" crossOrigin="anonymous" />
               </div>
               <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-border bg-secondary/40 px-3 py-2">
@@ -109,23 +109,24 @@ export function DocumentPreviewPane({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center"
+              className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 text-center"
             >
-              <span className="grid h-12 w-12 place-items-center rounded-xl bg-secondary text-muted-foreground">
-                <UploadCloud className="h-5 w-5" />
+              <span className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary">
+                <UploadCloud className="h-6 w-6" />
               </span>
-              <p className="text-sm font-medium">Drop a document image here</p>
-              <p className="text-xs text-muted-foreground">or click to browse · JPG, PNG</p>
+              <div>
+                <p className="text-sm font-medium">Drop a university document here</p>
+                <p className="mt-1 text-xs text-muted-foreground">or click to browse · JPG, PNG, WEBP</p>
+              </div>
+              <div className="mt-2 flex flex-wrap justify-center gap-1.5 text-[10px] text-muted-foreground font-mono">
+                <span className="rounded bg-muted/60 px-2 py-0.5">Leave Applications</span>
+                <span className="rounded bg-muted/60 px-2 py-0.5">Faculty Absences</span>
+                <span className="rounded bg-muted/60 px-2 py-0.5">Admissions</span>
+                <span className="rounded bg-muted/60 px-2 py-0.5">Fee Receipts</span>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-
-      {/* Judge Trial Disclaimer */}
-      <div className="mt-4 text-center">
-        <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/10 rounded-lg p-3 inline-block">
-          <span className="font-semibold text-primary">Judge Trial Note:</span> Sample test documents (Clean, Neat, and Messy handwriting) are located in the <code className="bg-background px-1 py-0.5 rounded text-primary">/public/samples/</code> folder of the GitHub repository. Please download and upload them here to simulate the OCR engine.
-        </p>
       </div>
 
       <AnimatePresence>
@@ -137,7 +138,7 @@ export function DocumentPreviewPane({
             className="mt-3 overflow-hidden"
           >
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Running OCR extraction…</span>
+              <span>Running Document Intelligence extraction…</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
@@ -154,7 +155,7 @@ export function DocumentPreviewPane({
       <div className="mt-4 flex gap-2">
         <Button onClick={onExtract} disabled={!file || extracting} className="flex-1 gap-1.5">
           <ScanSearch className="h-4 w-4" />
-          {extracting ? "Extracting…" : "Run OCR extraction"}
+          {extracting ? "Analyzing Document…" : "Analyze Document"}
         </Button>
         {file && (
           <Button variant="outline" size="icon" onClick={() => inputRef.current?.click()} disabled={extracting} aria-label="Replace file">

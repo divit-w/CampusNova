@@ -7,6 +7,7 @@ class DailyAttendancePoint(BaseModel):
     date: str
     present: int
     absent: int
+    excused: int = 0
     total: int
 
 
@@ -22,11 +23,19 @@ class DashboardSummaryResponse(BaseModel):
     active_students: int
     active_teachers: int
 
+    # Attendance KPIs for today
+    present_today: int = 0
+    absent_today: int = 0
+    excused_today: int = 0
+    unmarked_today: int = 0
+    is_working_day: bool = True
+    attendance_status_message: Optional[str] = None
+
     # Most recent timetable_jobs_collection document, if any has ever been submitted.
-    timetable_status: Optional[str] = None  # "processing" | "completed" | "failed"
+    timetable_status: Optional[str] = None  # "active" | "processing" | "completed" | "failed"
     timetable_generated_at: Optional[str] = None
 
-    # substitutions_collection rows recorded for today's date (server UTC).
+    # substitutions_collection rows recorded for today's date
     substitutions_today: int
 
     # Last 7 calendar days (oldest → newest) of student_attendance_collection totals.

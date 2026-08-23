@@ -9,9 +9,11 @@ Algorithm pipeline:
      a practical TSP approximation that runs in < 5 ms for school-district-scale inputs.
   5. Calculate total route distance (Haversine, km) and estimated transit time at 30 km/h.
 """
+import asyncio
 import logging
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 
+import httpx
 import numpy as np
 from sklearn.cluster import KMeans
 
@@ -29,6 +31,67 @@ from app.services.mongo_service import mongo_db
 logger = logging.getLogger(__name__)
 
 _AVG_SPEED_KMH = 30.0  # Assumed average urban school bus speed
+_OSRM_ROUTE_URL = "http://router.project-osrm.org/route/v1/driving"
+
+
+async def _fetch_osrm_road_geometry(
+    ordered_points: List[Tuple[float, float]],
+    timeout_sec: float = 8.0,
+) -> Tuple[Optional[List[Tuple[float, float]]], Optional[float], Optional[float], str]:
+    """
+    Query OSRM driving service to obtain physical road geometry for ordered points.
+    Input points: [(lat, lon), ...] starting and ending at depot.
+    Returns: (geometry_points_lat_lon, distance_km, duration_min, status)
+    """
+    if len(ordered_points) < 2:
+        return None, None, None, "unavailable"
+
+    # Chunk into max 40 points per request to respect URL limits for large clusters
+    chunk_size = 40
+    segments_points: List[List[Tuple[float, float]]] = []
+    if len(ordered_points) <= 45:
+        segments_points.append(ordered_points)
+    else:
+        idx = 0
+        while idx < len(ordered_points) - 1:
+            chunk = ordered_points[idx : idx + chunk_size + 1]
+            segments_points.append(chunk)
+            idx += chunk_size
+
+    all_geom: List[Tuple[float, float]] = []
+    total_dist_m = 0.0
+    total_dur_s = 0.0
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout_sec) as client:
+            for seg in segments_points:
+                coord_str = ";".join(f"{p[1]:.5f},{p[0]:.5f}" for p in seg)
+                url = f"{_OSRM_ROUTE_URL}/{coord_str}?overview=full&geometries=geojson"
+                resp = await client.get(url)
+                if resp.status_code != 200:
+                    logger.warning(f"OSRM returned status {resp.status_code}: {resp.text[:100]}")
+                    return None, None, None, "unavailable"
+                data = resp.json()
+                if not data.get("routes"):
+                    return None, None, None, "unavailable"
+                route_data = data["routes"][0]
+                total_dist_m += route_data.get("distance", 0.0)
+                total_dur_s += route_data.get("duration", 0.0)
+                raw_coords = route_data.get("geometry", {}).get("coordinates", [])
+                # GeoJSON coordinates are [lon, lat], convert to (lat, lon)
+                seg_geom = [(round(pt[1], 5), round(pt[0], 5)) for pt in raw_coords]
+                if all_geom and seg_geom:
+                    all_geom.extend(seg_geom[1:])
+                else:
+                    all_geom.extend(seg_geom)
+
+        dist_km = round(total_dist_m / 1000.0, 2)
+        dur_min = round(total_dur_s / 60.0, 1)
+        return all_geom, dist_km, dur_min, "success"
+
+    except Exception as e:
+        logger.warning(f"OSRM routing request failed: {e}")
+        return None, None, None, "unavailable"
 
 
 def _haversine_km(a: Tuple[float, float], b: Tuple[float, float]) -> float:
@@ -60,13 +123,14 @@ def _nearest_neighbor_route(
 
 
 class TransportOptimizer:
-    def __init__(self, request: TransportOptimizationRequest):
+    def __init__(self, request: TransportOptimizationRequest, university_id: str = "demo-university"):
         self.vehicles: List[VehicleSpec] = request.vehicles
         self.student_overrides = request.student_overrides
+        self.university_id = university_id
 
     async def _load_student_points(self) -> List[StudentPickupPoint]:
         """
-        Return student pickup points.
+        Return student pickup points for the specified tenant.
         Uses explicit overrides when provided; otherwise queries MongoDB for
         students with a valid `home_location` field containing [lat, lon].
         """
@@ -74,7 +138,7 @@ class TransportOptimizer:
             return self.student_overrides
 
         raw_students = await mongo_db.students_collection.find(
-            {"home_location": {"$exists": True, "$ne": None}},
+            {"home_location": {"$exists": True, "$ne": None}, "university_id": self.university_id},
             {"_id": 0, "student_id": 1, "home_location": 1},
         ).to_list(length=5000)
 
@@ -92,8 +156,8 @@ class TransportOptimizer:
                 except (ValueError, TypeError):
                     logger.warning(f"Skipping student {s.get('student_id')} — invalid home_location: {loc}")
 
-        if not points:
-            # Deterministic sample student locations clustered around campus area (Noida)
+        if not points and self.university_id == "demo-university":
+            # Deterministic sample student locations clustered around campus area (Noida) for demo university only
             base_lat, base_lon = 28.6304, 77.3711
             offsets = [
                 (0.012, 0.015), (0.018, -0.012), (-0.014, 0.020), (-0.022, -0.015),
@@ -105,7 +169,7 @@ class TransportOptimizer:
             for idx, (dlat, dlon) in enumerate(offsets):
                 points.append(
                     StudentPickupPoint(
-                        student_id=f"STU-{1001 + idx}",
+                        student_id=f"STU-{idx + 1:03d}",
                         location=(round(base_lat + dlat, 5), round(base_lon + dlon, 5)),
                     )
                 )
@@ -115,11 +179,13 @@ class TransportOptimizer:
     def _cluster_students(
         self,
         pickup_points: List[StudentPickupPoint],
-    ) -> Dict[int, List[StudentPickupPoint]]:
+    ) -> Tuple[Dict[int, List[StudentPickupPoint]], List[StudentPickupPoint]]:
         """
         Partition students into N geographic clusters using KMeans where N = len(vehicles).
-        After initial clustering, enforce per-vehicle capacity constraints by greedily
-        re-assigning overflow students to the nearest under-capacity cluster centroid.
+        After initial clustering, strictly enforce per-vehicle capacity constraints:
+          1. Greedily re-assign overflow students to the nearest under-capacity cluster.
+          2. If all vehicles have reached maximum capacity, track remaining students
+             as unassigned — NEVER overloading any vehicle beyond its declared capacity.
         """
         n_vehicles = len(self.vehicles)
         n_students = len(pickup_points)
@@ -141,14 +207,15 @@ class TransportOptimizer:
         for idx, label in enumerate(labels):
             clusters[label].append(pickup_points[idx])
 
-        # Enforce capacity constraints: spill overflow into nearest under-cap cluster
+        # Enforce capacity constraints: spill overflow into nearest under-cap cluster or unassigned
         capacities = {i: self.vehicles[i].capacity for i in range(n_vehicles)}
         centroids = kmeans.cluster_centers_
+        unassigned: List[StudentPickupPoint] = []
 
         for cluster_id in list(clusters.keys()):
             cap = capacities[cluster_id]
             while len(clusters[cluster_id]) > cap:
-                # Remove the geographically furthest student from this cluster
+                # Remove the geographically furthest student from this cluster centroid
                 centroid = (centroids[cluster_id][0], centroids[cluster_id][1])
                 overflow = max(
                     clusters[cluster_id],
@@ -162,10 +229,12 @@ class TransportOptimizer:
                     if i != cluster_id and len(clusters[i]) < capacities[i]
                 ]
                 if not candidates:
-                    # No capacity anywhere — put back and break (edge case: total capacity < students)
-                    clusters[cluster_id].append(overflow)
-                    logger.warning("Total vehicle capacity insufficient for all students.")
-                    break
+                    # Fleet capacity is fully exhausted — student remains unassigned
+                    unassigned.append(overflow)
+                    logger.info(
+                        f"Fleet capacity exhausted: student {overflow.student_id} marked as unassigned."
+                    )
+                    continue
 
                 nearest = min(
                     candidates,
@@ -175,7 +244,7 @@ class TransportOptimizer:
                 )
                 clusters[nearest].append(overflow)
 
-        return clusters
+        return clusters, unassigned
 
     def _build_route(
         self, vehicle: VehicleSpec, cluster: List[StudentPickupPoint]
@@ -234,10 +303,12 @@ class TransportOptimizer:
             return TransportOptimizationResponse(
                 total_vehicles_used=0,
                 total_students_routed=0,
+                total_unassigned=0,
+                unassigned_students=[],
                 routes=[],
             )
 
-        clusters = self._cluster_students(pickup_points)
+        clusters, unassigned = self._cluster_students(pickup_points)
         routes: List[OptimizedRoute] = []
 
         for vehicle_idx, vehicle in enumerate(self.vehicles):
@@ -246,9 +317,49 @@ class TransportOptimizer:
             routes.append(route)
 
         active_routes = [r for r in routes if r.assigned_student_count > 0]
+        unassigned_ids = [p.student_id for p in unassigned]
+
+        # Concurrently fetch actual road-following geometry from OSRM for each active vehicle route
+        async def _augment_road_geom(route: OptimizedRoute, vehicle: VehicleSpec) -> OptimizedRoute:
+            if not route.stops:
+                return route
+            # Full circuit: depot -> stop 1 -> stop 2 -> ... -> stop N -> depot
+            ordered_pts = [vehicle.start_location] + [s.location for s in route.stops] + [vehicle.start_location]
+            geom, road_dist, road_dur, status = await _fetch_osrm_road_geometry(ordered_pts)
+            if status == "success" and geom:
+                return OptimizedRoute(
+                    vehicle_id=route.vehicle_id,
+                    assigned_student_count=route.assigned_student_count,
+                    estimated_distance_km=road_dist if road_dist is not None else route.estimated_distance_km,
+                    estimated_duration_min=road_dur if road_dur is not None else route.estimated_duration_min,
+                    stops=route.stops,
+                    road_geometry=geom,
+                    road_routing_status="success",
+                    road_distance_km=road_dist,
+                    road_duration_min=road_dur,
+                )
+            else:
+                return OptimizedRoute(
+                    vehicle_id=route.vehicle_id,
+                    assigned_student_count=route.assigned_student_count,
+                    estimated_distance_km=route.estimated_distance_km,
+                    estimated_duration_min=route.estimated_duration_min,
+                    stops=route.stops,
+                    road_geometry=None,
+                    road_routing_status="unavailable",
+                    road_distance_km=None,
+                    road_duration_min=None,
+                )
+
+        vehicle_by_id = {v.vehicle_id: v for v in self.vehicles}
+        augmented_routes = await asyncio.gather(
+            *[_augment_road_geom(r, vehicle_by_id[r.vehicle_id]) for r in active_routes]
+        )
 
         return TransportOptimizationResponse(
-            total_vehicles_used=len(active_routes),
-            total_students_routed=sum(r.assigned_student_count for r in active_routes),
-            routes=active_routes,
+            total_vehicles_used=len(augmented_routes),
+            total_students_routed=sum(r.assigned_student_count for r in augmented_routes),
+            total_unassigned=len(unassigned_ids),
+            unassigned_students=unassigned_ids,
+            routes=list(augmented_routes),
         )
