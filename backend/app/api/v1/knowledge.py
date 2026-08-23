@@ -543,6 +543,17 @@ async def query_knowledge(
         )
 
     collection = chroma_db.get_or_create_collection("student_documents")
+    
+    # Auto-ensure ChromaDB has vector chunks indexed for this tenant
+    try:
+        tenant_chunks = collection.get(where={"university_id": univ_id}, include=[])
+        if not tenant_chunks or not tenant_chunks.get("ids"):
+            logger.info("ChromaDB vector store has 0 chunks for tenant %s — auto-indexing canonical policy documents...", univ_id)
+            from app.services.seed_demo_knowledge import seed_canonical_demo_knowledge
+            await seed_canonical_demo_knowledge(univ_id)
+    except Exception as reindex_err:
+        logger.warning("ChromaDB tenant chunk auto-reindex check failed: %s", reindex_err)
+
     semantic_hits = []
     
     try:
