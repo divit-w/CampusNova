@@ -22,7 +22,7 @@
 
 <br />
 
-### [Try It Live &rarr;](https://campus-nova-sand.vercel.app/login)
+### [Try It Live &rarr;](https://campus-nova-teal.vercel.app)
 
 **[Backend API Service (FastAPI & Render)](https://campusnova-api.onrender.com)** &nbsp;|&nbsp; **[Interactive API Documentation (Swagger UI)](https://campusnova-api.onrender.com/docs)**
 
