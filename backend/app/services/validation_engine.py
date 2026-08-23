@@ -273,7 +273,7 @@ class BulkAttendanceValidator:
                 })
                 if existing:
                     validations["conflict"] = ValidationResult(
-                        passed=False, code="V110", message="Attendance record already exists.", severity="WARNING"
+                        passed=False, code="V110", message="Existing attendance found — finalizing will update this record.", severity="WARNING"
                     )
                 else:
                     validations["conflict"] = ValidationResult(

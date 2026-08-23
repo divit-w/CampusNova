@@ -319,6 +319,9 @@ CampusNova/
 
 ## Setup & Installation
 
+For deployment configuration, persistent storage, and staging checks, see
+[Production Configuration](docs/production-configuration.md).
+
 ### Prerequisites
 *   Node.js 20+
 *   Python 3.11+

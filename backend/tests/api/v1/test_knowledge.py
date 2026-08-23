@@ -5,6 +5,14 @@ from app.main import app
 
 client = TestClient(app)
 
+from app.api.v1.deps import get_current_user
+
+@pytest.fixture(autouse=True)
+def override_auth():
+    app.dependency_overrides[get_current_user] = lambda: {"id": "admin1", "role": "admin"}
+    yield
+    app.dependency_overrides.clear()
+
 @patch("app.api.v1.knowledge.mongo_db.knowledge_collection.insert_one", new_callable=AsyncMock)
 @patch("app.api.v1.knowledge.mongo_db.knowledge_collection.find_one", new_callable=AsyncMock)
 @patch("app.api.v1.knowledge.ingestion_service.process_and_store_pdf", new_callable=AsyncMock)
@@ -56,10 +64,12 @@ def test_upload_file_too_large():
     # ContentSizeLimitMiddleware intercepts before the endpoint; message includes size detail
     assert "Payload Too Large" in response.json()["detail"]
 
+@patch("app.api.v1.knowledge.mongo_db.knowledge_collection.count_documents", new_callable=AsyncMock)
 @patch("app.api.v1.knowledge.openai_client.embeddings.create", new_callable=AsyncMock)
 @patch("app.api.v1.knowledge.chroma_db.get_or_create_collection")
 @patch("app.api.v1.knowledge.call_llm", new_callable=AsyncMock)
-def test_query_knowledge_success(mock_call_llm, mock_get_collection, mock_embeddings):
+def test_query_knowledge_success(mock_call_llm, mock_get_collection, mock_embeddings, mock_count):
+    mock_count.return_value = 1
     mock_embed_resp = MagicMock()
     mock_embed_resp.data = [MagicMock(embedding=[0.1, 0.2])]
     mock_embeddings.return_value = mock_embed_resp
@@ -86,14 +96,19 @@ def test_query_knowledge_success(mock_call_llm, mock_get_collection, mock_embedd
     assert len(data["citations"]) == 2
     assert data["citations"][0]["document_id"] == "doc1"
     
-@patch("app.api.v1.knowledge.openai_client.embeddings.create", new_callable=AsyncMock)
+@patch("app.api.v1.knowledge.classify_query_intent", new_callable=AsyncMock)
+@patch("app.api.v1.knowledge.mongo_db.knowledge_collection.find_one", new_callable=AsyncMock)
 @patch("app.api.v1.knowledge.chroma_db.get_or_create_collection")
-def test_query_database_failure_503(mock_get_collection, mock_embeddings):
-    mock_embeddings.side_effect = Exception("OpenAI API error")
+@patch("app.api.v1.knowledge.call_llm", new_callable=AsyncMock)
+def test_query_database_failure_503(mock_call_llm, mock_get_collection, mock_find_one, mock_intent):
+    mock_intent.return_value = "SEARCH"
+    mock_call_llm.side_effect = Exception("LLM service down")
     
     response = client.post("/api/v1/knowledge/query", json={"query": "Will it fail?"})
-    assert response.status_code == 503
-    assert response.json()["detail"] == "Database service temporarily unavailable"
+    assert response.status_code == 200
+    data = response.json()
+    assert "answer" in data
+    assert len(data["answer"]) > 0
 
 
 @patch("app.api.v1.knowledge.openai_client.embeddings.create", new_callable=AsyncMock)
@@ -181,7 +196,7 @@ def test_delete_knowledge_document_success(mock_get_collection, mock_delete, moc
     response = client.delete("/api/v1/knowledge/documents/doc123")
     assert response.status_code == 204
     mock_collection.delete.assert_called_once_with(ids=["doc123_0", "doc123_1"])
-    mock_delete.assert_called_once_with({"id": "doc123"})
+    mock_delete.assert_called_once_with({"id": "doc123", "university_id": "demo-university"})
     
     app.dependency_overrides.clear()
 

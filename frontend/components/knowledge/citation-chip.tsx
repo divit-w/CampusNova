@@ -21,6 +21,12 @@ export function CitationChip({ citation, index }: { citation: RAGCitation; index
   const [open, setOpen] = useState(false)
   const pct = Math.round(citation.confidence_score * 100)
 
+  const cleanName = citation.source_file
+    ? citation.source_file.replace(/\.pdf$/i, "").replace(/[-_]/g, " ")
+    : "Document"
+
+  const label = cleanName.length > 20 ? `${cleanName.slice(0, 18)}...` : cleanName
+
   return (
     <div className="inline-flex flex-col">
       <button
@@ -33,7 +39,8 @@ export function CitationChip({ citation, index }: { citation: RAGCitation; index
         )}
       >
         <FileText className="h-3 w-3 shrink-0" />
-        Source {index + 1}
+        <span className="max-w-[140px] truncate">{label}</span>
+        <span className="text-[10px] text-muted-foreground/80 font-normal">(Sec {citation.chunk_index + 1})</span>
         <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", confidenceTone(citation.confidence_score))}>
           {pct}%
         </span>
@@ -57,9 +64,13 @@ export function CitationChip({ citation, index }: { citation: RAGCitation; index
               >
                 <X className="h-3 w-3" />
               </button>
+              <div className="mb-1.5 flex items-center gap-1.5 font-semibold text-foreground">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+                <span className="truncate">{citation.source_file || "Uploaded Document"}</span>
+              </div>
               <p className="text-pretty text-muted-foreground">&ldquo;{citation.extracted_text}&rdquo;</p>
               <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground/80">
-                <span className="truncate">Doc {citation.document_id.slice(0, 8)} · Chunk {citation.chunk_index}</span>
+                <span className="truncate">Section / Paragraph {citation.chunk_index + 1}</span>
                 <span className={cn("shrink-0 font-semibold", confidenceTone(citation.confidence_score).split(" ").pop())}>
                   {pct}% match
                 </span>

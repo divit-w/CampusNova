@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { motion } from "framer-motion"
 import { CalendarOff, UserCheck, UserX } from "lucide-react"
 import { Card } from "@/components/ui/card"
@@ -15,6 +16,7 @@ const TILES = [
     icon: UserCheck,
     tone: "text-success",
     tint: "bg-success/10",
+    href: "/attendance?filter=present",
   },
   {
     key: "absent" as const,
@@ -22,6 +24,7 @@ const TILES = [
     icon: UserX,
     tone: "text-destructive",
     tint: "bg-destructive/10",
+    href: "/attendance?filter=absent",
   },
   {
     key: "excused" as const,
@@ -29,6 +32,7 @@ const TILES = [
     icon: CalendarOff,
     tone: "text-info",
     tint: "bg-info/10",
+    href: "/attendance?filter=excused",
   },
   {
     key: "unmarked" as const,
@@ -36,11 +40,22 @@ const TILES = [
     icon: CalendarOff,
     tone: "text-warning",
     tint: "bg-warning/15",
+    href: "/attendance?filter=unmarked",
   },
 ]
 
 /** Real KPI row backed by /admin/attendance/summary + /admin/students. Admin-only endpoints. */
-export function AttendanceKpiCards({ compact = false, date }: { compact?: boolean; date?: string }) {
+export function AttendanceKpiCards({
+  compact = false,
+  date,
+  activeFilter,
+  onSelectFilter,
+}: {
+  compact?: boolean
+  date?: string
+  activeFilter?: string
+  onSelectFilter?: (filter: string) => void
+}) {
   const { data, isLoading } = useAttendanceSummary(true, date)
 
   if (isLoading && !data) {
@@ -66,22 +81,42 @@ export function AttendanceKpiCards({ compact = false, date }: { compact?: boolea
     >
       {TILES.map((tile) => {
         const value = data ? data[tile.key] : 0
+        const isActive = activeFilter === tile.key
+
         return (
           <motion.div key={tile.key} variants={riseItem}>
-            <Card
-              className={cn(
-                "p-5 transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-glow-primary",
-                compact && "p-4",
-              )}
+            <Link
+              href={tile.href}
+              onClick={(e) => {
+                if (onSelectFilter) {
+                  e.preventDefault()
+                  onSelectFilter(tile.key)
+                }
+              }}
+              className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <div className="flex items-center justify-between">
-                <span className={cn("grid h-9 w-9 place-items-center rounded-xl", tile.tint, tile.tone)}>
-                  <tile.icon className="h-[18px] w-[18px]" />
-                </span>
-              </div>
-              <p className="mt-4 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{tile.label}</p>
-            </Card>
+              <Card
+                className={cn(
+                  "h-full p-5 cursor-pointer transition-all duration-300 ease-spring hover:-translate-y-1 hover:scale-[1.02] hover:shadow-glow-primary",
+                  compact && "p-4",
+                  isActive && "border-primary bg-primary/[0.03] ring-1 ring-primary/50 shadow-glow-primary",
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className={cn(
+                      "grid h-9 w-9 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-110",
+                      tile.tint,
+                      tile.tone,
+                    )}
+                  >
+                    <tile.icon className="h-[18px] w-[18px]" />
+                  </span>
+                </div>
+                <p className="mt-4 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{tile.label}</p>
+              </Card>
+            </Link>
           </motion.div>
         )
       })}

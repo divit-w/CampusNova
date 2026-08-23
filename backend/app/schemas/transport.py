@@ -36,13 +36,27 @@ class OptimizedRoute(BaseModel):
     vehicle_id: str
     assigned_student_count: int
     estimated_distance_km: float = Field(..., description="Total route distance in kilometres")
-    estimated_duration_min: float = Field(..., description="Estimated transit time in minutes at 30 km/h")
+    estimated_duration_min: float = Field(..., description="Estimated transit time in minutes")
     stops: List[RouteStop]
+    road_geometry: Optional[List[Tuple[float, float]]] = Field(
+        default=None, description="Detailed road network path coordinates as (lat, lon) for map rendering"
+    )
+    road_routing_status: Optional[str] = Field(
+        default="success", description="Status of road routing: 'success' | 'unavailable'"
+    )
+    road_distance_km: Optional[float] = Field(
+        default=None, description="Physical road network distance in km from OSRM"
+    )
+    road_duration_min: Optional[float] = Field(
+        default=None, description="Actual road transit duration in minutes from OSRM"
+    )
 
 
 class TransportOptimizationResponse(BaseModel):
     total_vehicles_used: int
     total_students_routed: int
+    total_unassigned: int = 0
+    unassigned_students: List[str] = Field(default_factory=list)
     routes: List[OptimizedRoute]
 
 
@@ -51,4 +65,5 @@ class TransportRoutesSummaryResponse(BaseModel):
     has_plan: bool
     active_routes: int = 0
     total_students_routed: int = 0
+    total_unassigned: int = 0
     generated_at: Optional[datetime] = None

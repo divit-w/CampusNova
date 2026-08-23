@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { EmptyState, PageHeading } from "@/components/states"
 import { AttendanceKpiCards } from "@/components/attendance-kpi-cards"
-import { TransportKpiCard } from "@/components/transport-kpi-card"
 import { OperationsSummaryCards } from "@/components/operations-summary-cards"
 import { AttendanceTrendChart } from "@/components/attendance-trend-chart"
 import { useAlerts } from "@/lib/alerts"
@@ -22,15 +21,21 @@ export default function DashboardPage() {
   const { status, feed } = useAlerts()
   const isAdmin = user?.role === "admin"
   const { data: summary } = useDashboardSummary(isAdmin)
-  const firstName = "Admin"
+  const displayName = isAdmin
+    ? "Admin"
+    : user?.full_name && !user.full_name.toLowerCase().includes("hackathon")
+      ? user.full_name.split(" ")[0]
+      : "there"
 
   const timetableAgo = relativeTimeFromIso(summary?.timetable_generated_at)
   const timetableStatusText =
-    summary?.timetable_status === "processing"
-      ? "Generating now…"
-      : timetableAgo
-        ? `Last generated ${timetableAgo}`
-        : "Not generated yet"
+    summary?.timetable_status === "active"
+      ? timetableAgo ? `Active · ${timetableAgo}` : "Active timetable"
+      : summary?.timetable_status === "processing"
+        ? "Generating now…"
+        : summary?.timetable_status === "completed" || summary?.timetable_status === "draft"
+          ? "Draft ready · Review"
+          : "Not generated yet"
 
   const substitutionsText =
     summary && summary.substitutions_today > 0
@@ -64,17 +69,63 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeading
-        title={<span className="text-gradient-brand">Good to see you, {firstName}.</span>}
+        title={<span className="text-gradient-brand">Good to see you, {displayName}.</span>}
         description="Your campus operations at a glance. Jump into a workflow or keep an eye on the live alert stream."
       />
 
+      {isAdmin && summary && summary.active_students === 0 && summary.active_teachers === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 rounded-2xl border border-primary/20 bg-primary/5 p-6 space-y-4"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 rounded-xl bg-primary/10 text-primary">
+                <Sparkles className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-base font-bold text-foreground">Welcome to CampusNova</p>
+                <p className="text-xs text-muted-foreground">
+                  Your university workspace is ready. Build your academic directory or generate a schedule to get started.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2.5 pt-1">
+            <Link
+              href="/admin/setup"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
+            >
+              <span>Complete Setup Wizard</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              href="/admin/users"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-background px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-accent"
+            >
+              <span>Add Faculty</span>
+            </Link>
+            <Link
+              href="/admin/users"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-background px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-accent"
+            >
+              <span>Add Students</span>
+            </Link>
+            <Link
+              href="/timetable"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-background px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-accent"
+            >
+              <span>Build Timetable</span>
+            </Link>
+          </div>
+        </motion.div>
+      )}
+
       {isAdmin && (
         <div className="mb-6 flex flex-col gap-4">
-          <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4 sm:grid-cols-4">
-            <div className="sm:col-span-3">
-              <AttendanceKpiCards />
-            </div>
-            <TransportKpiCard />
+          <motion.div variants={staggerContainer} initial="hidden" animate="show">
+            <AttendanceKpiCards />
           </motion.div>
           <OperationsSummaryCards />
         </div>

@@ -15,10 +15,10 @@ import { DocumentUpload } from "@/components/documents/document-upload"
 import { cn } from "@/lib/utils"
 
 const EXAMPLE_PROMPTS = [
-  "What is the school's late-arrival policy?",
-  "Summarize the admissions requirements",
-  "What documents are needed for a transfer student?",
-  "What is the grading scale for grade 8?",
+  "What is the minimum attendance threshold and medical leave policy?",
+  "What are the weekly teaching load limits for faculty?",
+  "What time does the Central Library close on weekdays and weekends?",
+  "What is the letter grading scale and makeup exam policy?",
 ]
 
 function makeId() {
@@ -52,7 +52,7 @@ export default function KnowledgePage() {
       const res = await api.queryKnowledge(trimmed)
       setMessages((prev) => [...prev, { id: makeId(), role: "assistant", content: res.answer, citations: res.citations }])
     } catch (err) {
-      const message = err instanceof ApiError ? err.detail : "Something went wrong reaching the knowledge base."
+      const message = err instanceof ApiError ? err.detail : "Something went wrong reaching the knowledge base. Please check connectivity or ensure documents are indexed."
       setMessages((prev) => [...prev, { id: makeId(), role: "assistant", content: message, isError: true }])
     } finally {
       setLoading(false)
@@ -69,7 +69,7 @@ export default function KnowledgePage() {
         <PageHeading
           icon={<MessagesSquare className="h-5 w-5" />}
           title={<span className="text-gradient-brand">Knowledge Base</span>}
-          description="Ask questions in plain English, or bulk ingest documents directly into the vector database."
+          description="Ask questions in plain English, or ingest institutional documents directly into the vector repository."
           actions={<KnowledgeUploadControl />}
         />
         <div className="flex w-fit items-center rounded-xl bg-secondary p-1 shrink-0">
@@ -103,27 +103,34 @@ export default function KnowledgePage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={spring.gentle}
-              className="flex h-full flex-col items-center justify-center gap-5 py-6 text-center"
+              className="flex h-full flex-col items-center justify-center gap-6 py-8 text-center"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-xl bg-gradient-to-br from-primary to-live text-primary-foreground shadow-soft">
+              <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent text-primary shadow-soft ring-1 ring-primary/20">
                 <Sparkles className="h-6 w-6" />
               </span>
-              <div>
-                <p className="text-sm font-medium">Ask anything about your indexed documents</p>
-                <p className="mt-1 text-pretty text-sm text-muted-foreground">
-                  Every answer cites the exact chunks it was pulled from.
+              <div className="max-w-md">
+                <p className="text-base font-semibold text-foreground">Institutional Knowledge Repository</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                  Ask policy, regulation, and operational questions grounded in your uploaded university documents. Every response cites exact verified sections.
                 </p>
               </div>
-              <div className="grid w-full gap-2 sm:grid-cols-2">
-                {EXAMPLE_PROMPTS.map((prompt) => (
-                  <button
-                    key={prompt}
-                    onClick={() => useExample(prompt)}
-                    className="glass-surface rounded-xl px-3.5 py-2.5 text-left text-xs font-medium text-foreground transition-all duration-300 ease-spring hover:-translate-y-[1px] hover:scale-[1.01] hover:border-primary/40 hover:bg-white/80 hover:shadow-soft"
-                  >
-                    {prompt}
-                  </button>
-                ))}
+
+              {/* Example Prompts */}
+              <div className="w-full max-w-lg space-y-2 text-left">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Common Administrative Inquiries
+                </p>
+                <div className="grid w-full gap-2 sm:grid-cols-2">
+                  {EXAMPLE_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      onClick={() => useExample(prompt)}
+                      className="glass-surface rounded-xl border border-border/70 p-3 text-left text-xs font-medium text-foreground transition-all duration-300 ease-spring hover:-translate-y-[1px] hover:border-primary/40 hover:bg-background/80 hover:shadow-soft"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
               </div>
             </motion.div>
           )}

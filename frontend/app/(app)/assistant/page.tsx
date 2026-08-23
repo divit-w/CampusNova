@@ -1,8 +1,22 @@
 "use client"
 
+import Link from "next/link"
 import { useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, CornerDownLeft, Loader2, Database, Zap, Download } from "lucide-react"
+import {
+  Sparkles,
+  CornerDownLeft,
+  Loader2,
+  Database,
+  Zap,
+  Download,
+  ArrowRight,
+  Compass,
+  CheckCircle2,
+  ShieldCheck,
+  CalendarClock,
+  UserX,
+} from "lucide-react"
 
 import { api } from "@/lib/api"
 import type { PromptResponse } from "@/lib/types"
@@ -15,10 +29,10 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 
 const EXAMPLE_PROMPTS = [
-  "Show all students",
-  "Show all teachers",
-  "List all classes",
-  "Show today's attendance",
+  "Show all students in CSE-A",
+  "Show Dr. Sharma's classes today",
+  "Find a substitute for Dr. Sharma",
+  "Who is absent today?",
 ]
 
 type ViewState =
@@ -110,8 +124,8 @@ export default function AssistantPage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeading
         icon={<Sparkles className="h-5 w-5" />}
-        title="Command Center"
-        description="Ask in plain English. CampusNova translates your request into a live query against the ERP."
+        title="AI Command Center"
+        description="Ask in plain English. CampusNova intelligently translates your inquiry into operational actions and real ERP queries."
       />
 
       {/* Composer */}
@@ -123,7 +137,7 @@ export default function AssistantPage() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={3}
-            placeholder="e.g. Show all teachers in the science department"
+            placeholder="e.g. Show all students in CSE-A, Show Dr. Sharma's classes today, or Find a substitute for Dr. Sharma"
             className="resize-none border-0 bg-transparent pr-28 text-base shadow-none focus-visible:ring-0"
             aria-label="Natural language query"
           />
@@ -148,6 +162,7 @@ export default function AssistantPage() {
       <AnimatePresence>
         {view.kind === "idle" && (
           <motion.div
+            key="idle"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -184,7 +199,7 @@ export default function AssistantPage() {
             className="flex items-center gap-3 rounded-xl border border-border glass-surface px-5 py-8 text-sm text-muted-foreground"
           >
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            Interpreting your request and querying the ERP…
+            Interpreting your request and evaluating ERP operations…
           </motion.div>
         )}
 
@@ -198,50 +213,117 @@ export default function AssistantPage() {
           >
             <Card className="space-y-4 p-5">
               <div className="flex flex-wrap items-center gap-2 border-b border-border/70 pb-4">
-                <Badge variant="live" className="gap-1.5">
+                <Badge variant={view.data.intent === "action" ? "success" : "live"} className="gap-1.5 capitalize">
                   <Zap className="h-3.5 w-3.5" />
-                  {view.data.action_type}
+                  {view.data.intent ?? view.data.action_type}
                 </Badge>
-                <Badge variant="neutral" className="gap-1.5">
-                  <Database className="h-3.5 w-3.5" />
-                  {view.data.target_collection}
-                </Badge>
+                {view.data.target_collection && view.data.target_collection !== "system" && (
+                  <Badge variant="neutral" className="gap-1.5">
+                    <Database className="h-3.5 w-3.5" />
+                    {view.data.target_collection}
+                  </Badge>
+                )}
                 
+                {/* Verified Data Indicator */}
+                {view.data.total_matches !== undefined && (
+                  <Badge variant="outline" className="gap-1 text-xs border-success/30 bg-success/10 text-success">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Verified from CampusNova records
+                  </Badge>
+                )}
+
                 <div className="ml-auto flex items-center gap-3">
-                  <span className="hidden max-w-[200px] truncate text-xs text-muted-foreground sm:inline-block">
-                    &ldquo;{view.query}&rdquo;
-                  </span>
+                  {view.data.total_matches !== undefined && (
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {view.data.total_matches} record{view.data.total_matches === 1 ? '' : 's'}
+                      {view.data.preview_count !== undefined && view.data.total_matches > view.data.preview_count
+                        ? ` (showing ${view.data.preview_count})`
+                        : ''}
+                    </span>
+                  )}
                   
                   {(() => {
                     const hasData = Array.isArray(view.data.results) 
-                      ? view.data.results.length > 0 
-                      : !!view.data.results;
-                    
-                    if (!hasData) return null;
-                    
-                    return (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-7 gap-1.5 text-xs"
-                        onClick={handleExportCsv}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        Export CSV
-                      </Button>
-                    );
-                  })()}
+                    ? view.data.results.length > 0 
+                    : (view.data.results && Object.keys(view.data.results).length > 0);
+                  
+                  if (!hasData) return null;
+                  
+                  return (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-7 gap-1.5 text-xs"
+                      onClick={handleExportCsv}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Export CSV
+                    </Button>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Contextual Structured Action Card */}
+            {view.data.action_card && (
+              <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Compass className="h-4 w-4 text-primary" />
+                      <h4 className="text-sm font-semibold text-foreground">{view.data.action_card.title}</h4>
+                    </div>
+                    {view.data.action_card.detail && (
+                      <p className="text-xs text-muted-foreground">{view.data.action_card.detail}</p>
+                    )}
+                  </div>
+                  <Button asChild size="sm" className="gap-1.5 shrink-0">
+                    <Link href={view.data.action_card.route}>
+                      <span>{view.data.action_card.action_label}</span>
+                    </Link>
+                  </Button>
                 </div>
               </div>
-              {view.data.summary && (
-                <div className="rounded-md bg-primary/10 p-4 border border-primary/20 text-sm text-primary">
-                  <strong>AI Summary:</strong> {view.data.summary}
+            )}
+
+            {/* AI Summary Response */}
+            {view.data.summary && (
+              <div className="rounded-xl bg-secondary/30 p-4 border border-border text-sm leading-relaxed text-foreground">
+                <p className="font-medium text-primary mb-1 flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4" /> Operational Summary:
+                </p>
+                {view.data.summary}
+              </div>
+            )}
+
+            {/* Fallback Action Workflow banner if route is provided without full action_card */}
+            {view.data.route && !view.data.action_card && (
+              <div className="flex items-center justify-between rounded-xl border border-border bg-secondary/40 p-4">
+                <div className="flex items-center gap-2.5">
+                  <Compass className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium">Recommended Action Workflow</span>
                 </div>
-              )}
-              <ResultRenderer results={view.data.results} />
-            </Card>
-          </motion.div>
-        )}
+                <Button asChild size="sm" className="gap-1.5">
+                  <Link href={view.data.route}>
+                    {view.data.suggested_action ?? "Open Workflow"}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            )}
+
+            {/* Verified Result Data Table */}
+            {(() => {
+              const hasData = Array.isArray(view.data.results)
+                ? view.data.results.length > 0
+                : (view.data.results && Object.keys(view.data.results).length > 0);
+
+              if (!hasData) return null;
+              return <ResultRenderer results={view.data.results} />;
+            })()}
+          </Card>
+        </motion.div>
+      )}
 
         {view.kind === "error" && (
           <motion.div

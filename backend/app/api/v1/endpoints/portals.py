@@ -14,16 +14,17 @@ router = APIRouter()
 async def teacher_my_classes(
     current_user: dict = Depends(require_roles(["teacher"])),
 ):
-    """Returns all classes assigned to the authenticated teacher."""
+    """Returns all classes assigned to the authenticated teacher for their tenant."""
     user_email = current_user.get("email")
-    teacher_doc = await mongo_db.teachers_collection.find_one({"email": user_email})
+    univ_id = current_user.get("university_id", "demo-university")
+    teacher_doc = await mongo_db.teachers_collection.find_one({"email": user_email, "university_id": univ_id})
     
     if not teacher_doc:
         raise HTTPException(status_code=404, detail="Teacher profile not found for this account.")
         
     teacher_id = teacher_doc.get("teacher_id")
     cursor = mongo_db.classes_collection.find(
-        {"teacher_id": teacher_id}, {"_id": 0}
+        {"teacher_id": teacher_id, "university_id": univ_id}, {"_id": 0}
     )
     return await cursor.to_list(length=200)
 
@@ -34,10 +35,11 @@ async def teacher_my_classes(
 async def student_my_schedule(
     current_user: dict = Depends(require_roles(["student"])),
 ):
-    """Returns the class schedule matching the authenticated student's grade+section."""
+    """Returns the class schedule matching the authenticated student's grade+section for their tenant."""
     user_email = current_user.get("email")
+    univ_id = current_user.get("university_id", "demo-university")
     student_doc = await mongo_db.students_collection.find_one(
-        {"email": user_email}, {"_id": 0}
+        {"email": user_email, "university_id": univ_id}, {"_id": 0}
     )
 
     if not student_doc:
@@ -53,7 +55,7 @@ async def student_my_schedule(
         )
 
     cursor = mongo_db.classes_collection.find(
-        {"grade": grade, "section": section}, {"_id": 0}
+        {"grade": grade, "section": section, "university_id": univ_id}, {"_id": 0}
     )
     return await cursor.to_list(length=200)
 
@@ -64,10 +66,11 @@ async def student_attendance_summary(
 ):
     """
     Returns the authenticated student's all-time present/absent totals and
-    attendance percentage, aggregated directly from student_attendance_collection.
+    attendance percentage, aggregated directly from student_attendance_collection for their tenant.
     """
     user_email = current_user.get("email")
-    student_doc = await mongo_db.students_collection.find_one({"email": user_email})
+    univ_id = current_user.get("university_id", "demo-university")
+    student_doc = await mongo_db.students_collection.find_one({"email": user_email, "university_id": univ_id})
     
     if not student_doc:
         raise HTTPException(status_code=404, detail="Student profile not found")
@@ -75,7 +78,7 @@ async def student_attendance_summary(
     student_id = student_doc.get("student_id")
 
     pipeline = [
-        {"$match": {"student_id": student_id}},
+        {"$match": {"student_id": student_id, "university_id": univ_id}},
         {
             "$group": {
                 "_id": "$student_id",
@@ -106,3 +109,4 @@ async def student_attendance_summary(
     return StudentAttendanceSummaryResponse(
         student_id=student_id, total=total, present=present, absent=absent, percentage=percentage
     )
+

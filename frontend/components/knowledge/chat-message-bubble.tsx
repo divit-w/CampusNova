@@ -92,10 +92,16 @@ export function ChatMessageBubble({ message, onRetry }: { message: ChatMessage; 
         )}
 
         {!isUser && message.citations && message.citations.length > 0 && (
-          <div className="flex flex-wrap items-start gap-1.5 pl-0.5">
-            {message.citations.map((citation, i) => (
-              <CitationChip key={`${citation.document_id}-${citation.chunk_index}`} citation={citation} index={i} />
-            ))}
+          <div className="flex flex-col gap-1.5 pl-0.5 mt-1">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500/10 text-[10px] font-bold">✓</span>
+              <span>Answer grounded in {message.citations.length} verified document excerpt{message.citations.length === 1 ? "" : "s"}</span>
+            </div>
+            <div className="flex flex-wrap items-start gap-1.5">
+              {message.citations.map((citation, i) => (
+                <CitationChip key={`${citation.document_id}-${citation.chunk_index}-${i}`} citation={citation} index={i} />
+              ))}
+            </div>
           </div>
         )}
       </div>

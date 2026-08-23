@@ -1,14 +1,48 @@
-.venv/
-__pycache__/
-.env
+# Version-control and local agent metadata
 .git/
-.pytest_cache/
-.chroma/
-tests/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
+.agents/
+
+# Secrets and local settings
+.env
+.env.*
+
+# Dependencies and generated files
+.venv/
 venv/
+env/
 ENV/
+backend/venv/
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+__pycache__/
+*.py[cod]
+*.tsbuildinfo
+.pytest_cache/
+backend/.pytest_cache/
+
+# Non-production material
+tests/
+backend/tests/
+test_files/
+sample_documents/
+screenshots/
+docs/
+_migration_archive_*/
+attendance_sheet_*.pdf
+attendance_sheet_*.png
+
+# Runtime state and uploaded personal data
+.chroma/
+chroma_data/
+chroma_db/
+backend/chroma_db/
+backend/runtime/
+uploads/
+backend/uploads/
+backend/scratch/
+
+# Platform artifacts
+*.log
+.Python

@@ -8,3 +8,4 @@ export const API_BASE_URL =
 export const API_V1 = `${API_BASE_URL}/api/v1`
 
 export const TOKEN_STORAGE_KEY = "campusnova.token"
+export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""

@@ -1,16 +1,41 @@
+# Secrets and local settings
 .env
-.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-.chroma/
-.env.local
 .env.*
-node_modules/
-.next/
+!.env.example
+.env.local
+
+# Python dependencies and generated files
 .venv/
 venv/
-__pycache__/chroma_data/
+env/
+ENV/
+backend/venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Frontend dependencies and generated files
+node_modules/
+.next/
+*.tsbuildinfo
+
+# Local runtime state and personal data
+.chroma/
 chroma_data/
 chroma_db/
+backend/chroma_db/
+backend/runtime/
+uploads/
+backend/uploads/
+backend/scratch/
+attendance_sheet_*.pdf
+attendance_sheet_*.png
+_migration_archive_*/
+
+# Local logs and operating-system files
+*.log
+.DS_Store
+Thumbs.db
 
