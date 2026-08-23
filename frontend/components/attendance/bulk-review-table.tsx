@@ -13,11 +13,28 @@ import { cn } from "@/lib/utils"
 
 interface BulkReviewTableProps {
   data: BulkAttendanceResponse
+  batchDate: string
+  detectedDate?: string
   onCancel: () => void
   onSuccess: () => void
 }
 
-export function BulkReviewTable({ data, onCancel, onSuccess }: BulkReviewTableProps) {
+function formatDateDisplay(isoDate?: string): string {
+  if (!isoDate) return "—"
+  try {
+    const parts = isoDate.split("-")
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10)
+      const month = parseInt(parts[1], 10) - 1
+      const day = parseInt(parts[2], 10)
+      const d = new Date(year, month, day)
+      return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+    }
+  } catch (e) {}
+  return isoDate
+}
+
+export function BulkReviewTable({ data, batchDate, detectedDate, onCancel, onSuccess }: BulkReviewTableProps) {
   const [records, setRecords] = useState<ProcessedAttendanceRow[]>(data.records)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -25,20 +42,12 @@ export function BulkReviewTable({ data, onCancel, onSuccess }: BulkReviewTablePr
   // Calculate stats based on current state (excluding exceptions which are uncommittable)
   const committableRecords = records.filter((r) => r.decision !== "EXCEPTION")
   const canFinalize = committableRecords.length > 0 && records.every(r => r.decision !== "REVIEW" || (r.student_id && r.status))
-  // Wait, the prompt says "Admin should be able to edit problematic rows, approve corrected rows, select which validated rows to commit"
-  // For simplicity, we just allow finalizing all non-EXCEPTION rows. If a row is REVIEW, admin must fix its fields. 
-  // Let's implement row updates.
 
   function updateRow(rowId: string, field: "student_id" | "status", value: string) {
     setRecords((prev) => 
       prev.map((r) => {
         if (r.row_id !== rowId) return r
         const newRow = { ...r, [field]: value }
-        // Simplistic re-eval for UI: if both fields are populated, we can treat it as 'corrected' locally
-        if (newRow.decision === "REVIEW" && newRow.student_id && newRow.status) {
-          // Keep it as REVIEW visually but it will be submittable, or mark it VALID locally.
-          // Let's just let them submit it.
-        }
         return newRow
       })
     )
@@ -52,7 +61,7 @@ export function BulkReviewTable({ data, onCancel, onSuccess }: BulkReviewTablePr
     try {
       await api.finalizeBulkRegister({
         batch_id: data.batch_id,
-        date: data.date || new Date().toISOString().slice(0, 10),
+        date: batchDate || data.date || new Date().toISOString().slice(0, 10),
         class_section: data.class_section || "Unknown",
         records: committableRecords
       })
@@ -68,8 +77,31 @@ export function BulkReviewTable({ data, onCancel, onSuccess }: BulkReviewTablePr
     }
   }
 
+  const isOverridden = Boolean(detectedDate && batchDate && detectedDate !== batchDate)
+
   return (
     <div className="flex flex-col space-y-4">
+      {/* Target Date Banner */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 bg-surface/60 p-3.5">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Batch Attendance Date:</span>
+            <span className="text-sm font-bold text-foreground bg-primary/10 px-2.5 py-0.5 rounded-md border border-primary/20">
+              {formatDateDisplay(batchDate)}
+            </span>
+          </div>
+          {isOverridden && (
+            <p className="text-xs text-warning mt-1 flex items-center gap-1">
+              <span>⚠ Overridden from detected date:</span>
+              <span className="font-semibold">{formatDateDisplay(detectedDate)}</span>
+            </p>
+          )}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Class / Section: <span className="font-semibold text-foreground">{data.class_section || "Grade 10-A"}</span>
+        </div>
+      </div>
+
       {/* Overall Decision Banner */}
       <Card className={cn(
         "p-4 flex items-center justify-between border-l-4",

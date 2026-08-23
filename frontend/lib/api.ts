@@ -3,6 +3,8 @@ import type {
   AttendanceSummaryResponse,
   ClassResponse,
   ClockInResponse,
+  FacultyAttendanceRecord,
+  FacultyAttendanceSummaryResponse,
   DocumentExtractResponse,
   BulkAttendanceResponse,
   FinalizeBulkAttendanceRequest,
@@ -24,7 +26,14 @@ import type {
   TransportRoutesSummaryResponse,
   User,
   ExtractedAttendanceRecord,
-  SyncBulkResponse
+  SyncBulkResponse,
+  ActiveTimetableResponse,
+  ActivateTimetableRequest,
+  ValidateTimetableResponse,
+  UniversityProfile,
+  DailySessionStatusResponse,
+  SessionRosterResponse,
+  RecordSessionAttendanceRequest,
 } from "./types"
 
 /** Normalized error that carries the HTTP status so UI can branch on 401/403/413/429/502. */
@@ -135,6 +144,12 @@ export const api = {
   post<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
     return request<T>(path, { method: "POST", body, signal })
   },
+  put<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+    return request<T>(path, { method: "PUT", body, signal })
+  },
+  patch<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+    return request<T>(path, { method: "PATCH", body, signal })
+  },
   delete<T>(path: string, signal?: AbortSignal): Promise<T> {
     return request<T>(path, { method: "DELETE", signal })
   },
@@ -148,8 +163,36 @@ export const api = {
     })
   },
 
+  /** Google Identity Login flow. */
+  async loginWithGoogle(credential: string): Promise<Token> {
+    return request<Token>("/auth/google", {
+      method: "POST",
+      auth: false,
+      body: { credential },
+    })
+  },
+
   async me(): Promise<User> {
     return request<User>("/auth/me")
+  },
+
+  /* University Management (admin) */
+  async getUniversity(): Promise<UniversityProfile> {
+    return request<UniversityProfile>("/admin/university")
+  },
+
+  async updateUniversity(body: Partial<UniversityProfile> | string): Promise<UniversityProfile> {
+    const payload = typeof body === "string" ? { university_name: body } : body
+    return request<UniversityProfile>("/admin/university", {
+      method: "PATCH",
+      body: payload,
+    })
+  },
+
+  async quickStartUniversity(): Promise<{ status: string; message: string; dataset: any }> {
+    return request("/admin/setup/quick-start", {
+      method: "POST",
+    })
   },
 
   /* NLP command center (admin) */
@@ -210,12 +253,39 @@ export const api = {
   async finalizeBulkRegister(payload: FinalizeBulkAttendanceRequest): Promise<{ status: string; message: string; batch_id: string }> {
     return request<{ status: string; message: string; batch_id: string }>("/attendance/finalize-bulk", { method: "POST", body: payload })
   },
-  async facultyClockIn(latitude: number, longitude: number, file: File): Promise<ClockInResponse> {
+  async facultyClockIn(latitude: number, longitude: number, file: File, livenessProof?: string, teacherId?: string): Promise<ClockInResponse> {
     const fd = new FormData()
     fd.append("latitude", String(latitude))
     fd.append("longitude", String(longitude))
     fd.append("file", file)
+    if (livenessProof) {
+      fd.append("liveness_proof", livenessProof)
+    }
+    if (teacherId) {
+      fd.append("teacher_id_param", teacherId)
+    }
     return request<ClockInResponse>("/attendance/faculty-clock-in", { method: "POST", formData: fd })
+  },
+  async facultyAttendanceSummary(date?: string): Promise<FacultyAttendanceSummaryResponse> {
+    const qs = date ? `?date=${encodeURIComponent(date)}` : ""
+    return request<FacultyAttendanceSummaryResponse>(`/attendance/faculty-summary${qs}`)
+  },
+  getAttendanceProofUrl(recordId: string): string {
+    return `${API_V1}/attendance/proof/${encodeURIComponent(recordId)}`
+  },
+  async getDailySessions(date?: string): Promise<DailySessionStatusResponse> {
+    const qs = date ? `?date=${encodeURIComponent(date)}` : ""
+    return request<DailySessionStatusResponse>(`/attendance/daily-sessions${qs}`)
+  },
+  async getSessionRoster(date: string, cohortId: string, subjectId?: string, period?: string, facultyId?: string): Promise<SessionRosterResponse> {
+    const params = new URLSearchParams({ date, cohort_id: cohortId })
+    if (subjectId) params.set("subject_id", subjectId)
+    if (period) params.set("period", period)
+    if (facultyId) params.set("faculty_id", facultyId)
+    return request<SessionRosterResponse>(`/attendance/session-roster?${params.toString()}`)
+  },
+  async recordSessionAttendance(payload: RecordSessionAttendanceRequest): Promise<{ status: string; message: string; records_count: number }> {
+    return request<{ status: string; message: string; records_count: number }>("/attendance/record-session", { method: "POST", body: payload })
   },
 
   /* Attendance analytics (admin) */
@@ -224,12 +294,23 @@ export const api = {
     const qs = date ? `?date=${encodeURIComponent(date)}&tz_offset_minutes=${tzOffset}` : `?tz_offset_minutes=${tzOffset}`
     return request<AttendanceSummaryResponse>(`/admin/attendance/summary${qs}`)
   },
-  async roster(limit = 100): Promise<StudentRecord[]> {
+  async roster(limit = 200): Promise<StudentRecord[]> {
     return request<StudentRecord[]>(`/admin/students?limit=${limit}`)
   },
   async dashboardSummary(): Promise<DashboardSummaryResponse> {
     const tzOffset = new Date().getTimezoneOffset()
     return request<DashboardSummaryResponse>(`/admin/dashboard-summary?tz_offset_minutes=${tzOffset}`)
+  },
+
+  /* Timetable active / activate / validate (admin) */
+  async getActiveTimetable(): Promise<ActiveTimetableResponse> {
+    return request<ActiveTimetableResponse>("/timetable/active")
+  },
+  async activateTimetable(data: ActivateTimetableRequest): Promise<{ status: string; message: string; active_timetable: ActiveTimetableResponse }> {
+    return request<{ status: string; message: string; active_timetable: ActiveTimetableResponse }>("/timetable/activate", { method: "POST", body: data })
+  },
+  async validateTimetable(data: Record<string, any>): Promise<ValidateTimetableResponse> {
+    return request<ValidateTimetableResponse>("/timetable/validate", { method: "POST", body: data })
   },
 
   /* Transport (admin) */
@@ -274,24 +355,93 @@ export const api = {
     return request<{ status: string; message: string }>(`/documents/${encodeURIComponent(documentId)}/approve`, { method: "POST", body: payload })
   },
 
-  /* Admin user management (admin only) */
-  async listStudents(skip = 0, limit = 50): Promise<AdminStudentRecord[]> {
-    return request<AdminStudentRecord[]>(`/admin/students?skip=${skip}&limit=${limit}`)
+  /* Admin directory management (admin only) */
+  async listStudents(skip = 0, limit = 100, cohort?: string): Promise<any[]> {
+    const qs = cohort ? `&cohort=${encodeURIComponent(cohort)}` : ""
+    return request<any[]>(`/admin/students?skip=${skip}&limit=${limit}${qs}`)
   },
-  async createStudent(body: CreateStudentPayload): Promise<AdminStudentRecord> {
-    return request<AdminStudentRecord>("/admin/students", { method: "POST", body })
+  async createStudent(body: any): Promise<any> {
+    return request<any>("/admin/students", { method: "POST", body })
   },
-  async listTeachers(skip = 0, limit = 50): Promise<AdminTeacherRecord[]> {
-    return request<AdminTeacherRecord[]>(`/admin/teachers?skip=${skip}&limit=${limit}`)
+  async updateStudent(studentId: string, body: any): Promise<any> {
+    return request<any>(`/admin/students/${encodeURIComponent(studentId)}`, { method: "PUT", body })
   },
-  async createTeacher(body: CreateTeacherPayload): Promise<AdminTeacherRecord> {
-    return request<AdminTeacherRecord>("/admin/teachers", { method: "POST", body })
+  async deleteStudent(studentId: string): Promise<any> {
+    return request<any>(`/admin/students/${encodeURIComponent(studentId)}`, { method: "DELETE" })
   },
-  async listClasses(skip = 0, limit = 50): Promise<ClassResponse[]> {
-    return request<ClassResponse[]>(`/admin/classes?skip=${skip}&limit=${limit}`)
+  async bulkImportStudents(file?: File, payload?: any[]): Promise<any> {
+    if (file) {
+      const fd = new FormData()
+      fd.append("file", file)
+      return request<any>("/admin/students/bulk", { method: "POST", formData: fd })
+    }
+    return request<any>("/admin/students/bulk", { method: "POST", body: payload })
   },
-  async createClass(body: CreateClassPayload): Promise<ClassResponse> {
-    return request<ClassResponse>("/admin/classes", { method: "POST", body })
+
+  async listTeachers(skip = 0, limit = 100): Promise<any[]> {
+    return request<any[]>(`/admin/teachers?skip=${skip}&limit=${limit}`)
+  },
+  async createTeacher(body: any): Promise<any> {
+    return request<any>("/admin/teachers", { method: "POST", body })
+  },
+  async updateTeacher(teacherId: string, body: any): Promise<any> {
+    return request<any>(`/admin/teachers/${encodeURIComponent(teacherId)}`, { method: "PUT", body })
+  },
+  async deleteTeacher(teacherId: string, force = false): Promise<any> {
+    return request<any>(`/admin/teachers/${encodeURIComponent(teacherId)}?force=${force}`, { method: "DELETE" })
+  },
+
+  async listClasses(skip = 0, limit = 100): Promise<any[]> {
+    return request<any[]>(`/admin/classes?skip=${skip}&limit=${limit}`)
+  },
+  async createClass(body: any): Promise<any> {
+    return request<any>("/admin/classes", { method: "POST", body })
+  },
+  async updateClass(classId: string, body: any): Promise<any> {
+    return request<any>(`/admin/classes/${encodeURIComponent(classId)}`, { method: "PUT", body })
+  },
+  async deleteClass(classId: string): Promise<any> {
+    return request<any>(`/admin/classes/${encodeURIComponent(classId)}`, { method: "DELETE" })
+  },
+
+  async listSubjects(skip = 0, limit = 100): Promise<any[]> {
+    return request<any[]>(`/admin/subjects?skip=${skip}&limit=${limit}`)
+  },
+  async createSubject(body: any): Promise<any> {
+    return request<any>("/admin/subjects", { method: "POST", body })
+  },
+  async updateSubject(subjectId: string, body: any): Promise<any> {
+    return request<any>(`/admin/subjects/${encodeURIComponent(subjectId)}`, { method: "PUT", body })
+  },
+  async deleteSubject(subjectId: string): Promise<any> {
+    return request<any>(`/admin/subjects/${encodeURIComponent(subjectId)}`, { method: "DELETE" })
+  },
+
+  async listRooms(skip = 0, limit = 100): Promise<any[]> {
+    return request<any[]>(`/admin/rooms?skip=${skip}&limit=${limit}`)
+  },
+  async createRoom(body: any): Promise<any> {
+    return request<any>("/admin/rooms", { method: "POST", body })
+  },
+  async updateRoom(roomId: string, body: any): Promise<any> {
+    return request<any>(`/admin/rooms/${encodeURIComponent(roomId)}`, { method: "PUT", body })
+  },
+  async deleteRoom(roomId: string): Promise<any> {
+    return request<any>(`/admin/rooms/${encodeURIComponent(roomId)}`, { method: "DELETE" })
+  },
+
+  /* Timetable Entities */
+  async getTimetableEntities(): Promise<any> {
+    return request<any>("/timetable/entities")
+  },
+
+  /* Alerts History */
+  async getAlertsHistory(limit = 50, status?: string): Promise<any[]> {
+    const qs = status ? `?limit=${limit}&status=${encodeURIComponent(status)}` : `?limit=${limit}`
+    return request<any[]>(`/alerts/history${qs}`)
+  },
+  async resolveAlert(alertId: string): Promise<any> {
+    return request<any>(`/alerts/${encodeURIComponent(alertId)}/resolve`, { method: "PATCH" })
   },
 }
 
@@ -345,4 +495,5 @@ export interface CreateClassPayload {
   grade: string
   section: string
 }
+
 

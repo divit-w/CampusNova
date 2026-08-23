@@ -267,3 +267,103 @@ async def test_timetable_status_rbac_rejects_non_admin(mock_find_user, async_cli
         headers={"Authorization": f"Bearer {create_access_token('teacher1', 'teacher')}"},
     )
     assert resp.status_code == 403
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Active / Activate / Validate Endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+@patch("app.api.v1.deps.mongo_db.users_collection.find_one", new_callable=AsyncMock)
+@patch("app.api.v1.timetable.mongo_db.active_timetable_collection.find_one", new_callable=AsyncMock)
+@patch("app.api.v1.timetable.mongo_db.timetable_jobs_collection.find_one", new_callable=AsyncMock)
+async def test_get_active_timetable_fallback_and_active(mock_job_find, mock_active_find, mock_user, async_client):
+    """Test retrieving active timetable when active exists vs when empty."""
+    mock_user.return_value = {"id": "admin1", "role": "admin"}
+    
+    # 1. When empty
+    mock_active_find.return_value = None
+    mock_job_find.return_value = None
+    res = await async_client.get(
+        "/api/v1/timetable/active",
+        headers={"Authorization": f"Bearer {admin_token()}"},
+    )
+    assert res.status_code == 200
+    assert res.json()["is_active"] is False
+
+    # 2. When active exists
+    mock_active_find.return_value = {
+        "is_active": True,
+        "status": "ACTIVE",
+        "schedule": [{"day": 0, "period": 0, "teacher_id": "F01", "cohort_id": "CSE-A", "room_id": "R101", "subject_id": "SUB-CS101"}],
+        "total_slots_scheduled": 1,
+    }
+    res2 = await async_client.get(
+        "/api/v1/timetable/active",
+        headers={"Authorization": f"Bearer {admin_token()}"},
+    )
+    assert res2.status_code == 200
+    assert res2.json()["is_active"] is True
+    assert res2.json()["total_slots_scheduled"] == 1
+
+
+@pytest.mark.asyncio
+@patch("app.api.v1.deps.mongo_db.users_collection.find_one", new_callable=AsyncMock)
+@patch("app.api.v1.timetable.mongo_db.timetable_jobs_collection.find_one", new_callable=AsyncMock)
+@patch("app.api.v1.timetable.mongo_db.active_timetable_collection.update_many", new_callable=AsyncMock)
+@patch("app.api.v1.timetable.mongo_db.active_timetable_collection.insert_one", new_callable=AsyncMock)
+@patch("app.api.v1.timetable.mongo_db.timetable_jobs_collection.update_many", new_callable=AsyncMock)
+@patch("app.api.v1.timetable.mongo_db.timetable_jobs_collection.update_one", new_callable=AsyncMock)
+async def test_activate_timetable_workflow(mock_j_up1, mock_j_upm, mock_insert, mock_upm, mock_j_find, mock_user, async_client):
+    """Test activating a completed timetable job persists active schedule."""
+    mock_user.return_value = {"id": "admin1", "role": "admin"}
+    mock_j_find.return_value = {
+        "job_id": "job-100",
+        "status": "completed",
+        "result": {
+            "status": "OPTIMAL",
+            "schedule": [{"day": 0, "period": 0, "teacher_id": "F01", "cohort_id": "CSE-A", "room_id": "R101", "subject_id": "SUB-CS101"}],
+            "solve_time_ms": 42.5,
+        },
+    }
+
+    res = await async_client.post(
+        "/api/v1/timetable/activate",
+        json={"job_id": "job-100"},
+        headers={"Authorization": f"Bearer {admin_token()}"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert data["active_timetable"]["is_active"] is True
+    mock_insert.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch("app.api.v1.deps.mongo_db.users_collection.find_one", new_callable=AsyncMock)
+async def test_validate_timetable_detects_intentional_conflicts(mock_user, async_client):
+    """Test validate endpoint detecting teacher, room, and cohort double booking."""
+    mock_user.return_value = {"id": "admin1", "role": "admin"}
+    payload = {
+        "teachers": [{"id": "F01", "name": "Dr. Sharma", "blocked_slots": [{"day": 0, "period": 0}]}],
+        "rooms": [{"id": "R101", "name": "LH-101"}],
+        "cohorts": [{"id": "CSE-A", "name": "CSE-A"}],
+        "schedule": [
+            # Teacher double booking on day 0, period 1
+            {"day": 0, "period": 1, "teacher_id": "F01", "cohort_id": "CSE-A", "room_id": "R101", "subject_id": "SUB-1"},
+            {"day": 0, "period": 1, "teacher_id": "F01", "cohort_id": "CSE-B", "room_id": "R102", "subject_id": "SUB-2"},
+            # Blocked slot on day 0, period 0
+            {"day": 0, "period": 0, "teacher_id": "F01", "cohort_id": "CSE-A", "room_id": "R101", "subject_id": "SUB-1"},
+        ]
+    }
+
+    res = await async_client.post(
+        "/api/v1/timetable/validate",
+        json=payload,
+        headers={"Authorization": f"Bearer {admin_token()}"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["is_valid"] is False
+    assert data["hard_conflicts_count"] >= 2
+

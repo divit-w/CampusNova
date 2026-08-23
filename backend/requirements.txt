@@ -5,6 +5,7 @@ google-genai
 ortools
 chromadb
 pytest
+pytest-asyncio
 httpx
 pydantic-settings
 python-multipart

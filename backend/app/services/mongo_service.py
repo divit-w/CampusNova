@@ -5,8 +5,8 @@ class MongoManager:
     def __init__(self):
         self.client = AsyncIOMotorClient(
             settings.MONGO_URI,
-            maxPoolSize=200,           # Sustain up to 200 concurrent MongoDB operations before queuing
-            minPoolSize=10,            # Pre-warm 10 connections — eliminates cold-connect latency
+            maxPoolSize=settings.MONGO_MAX_POOL_SIZE,
+            minPoolSize=settings.MONGO_MIN_POOL_SIZE,
             serverSelectionTimeoutMS=3000,  # Fail fast (3s) if MongoDB is unreachable
         )
         self.db = self.client[settings.MONGO_DB_NAME]
@@ -24,5 +24,15 @@ class MongoManager:
         # Timetable background job state — persists job status and result across the
         # 10s solver window. Allows the endpoint to return 202 immediately.
         self.timetable_jobs_collection = self.db.get_collection("timetable_jobs")
+        # Canonical active timetable published for university operations
+        self.active_timetable_collection = self.db.get_collection("active_timetable")
+        # Immutable document intelligence audit records
+        self.document_audit_collection = self.db.get_collection("document_audits")
+        # Multi-tenant institutions registry
+        self.institutions_collection = self.db.get_collection("institutions")
+        # Persistent operational alerts
+        self.alerts_collection = self.db.get_collection("alerts")
+        # Immutable attendance modification audit log
+        self.attendance_audit_collection = self.db.get_collection("attendance_audits")
 
 mongo_db = MongoManager()

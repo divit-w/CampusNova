@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { motion } from "framer-motion"
 import { CalendarCheck2, GraduationCap, ShieldCheck, Users } from "lucide-react"
 import { Card } from "@/components/ui/card"
@@ -48,6 +49,7 @@ export function OperationsSummaryCards({ compact = false }: { compact?: boolean 
       tint: "bg-primary/10",
       value: data?.active_students ?? 0,
       label: "Enrolled students",
+      href: "/admin/users",
     },
     {
       key: "teachers",
@@ -56,6 +58,7 @@ export function OperationsSummaryCards({ compact = false }: { compact?: boolean 
       tint: "bg-live/10",
       value: data?.active_teachers ?? 0,
       label: "Active faculty",
+      href: "/admin/users",
     },
     {
       key: "timetable",
@@ -64,6 +67,7 @@ export function OperationsSummaryCards({ compact = false }: { compact?: boolean 
       tint: "bg-success/10",
       value: timetableLabel,
       label: timetableGeneratedAgo ? `Timetable · ${timetableGeneratedAgo}` : "Timetable not generated",
+      href: "/timetable",
     },
     {
       key: "substitutions",
@@ -72,6 +76,7 @@ export function OperationsSummaryCards({ compact = false }: { compact?: boolean 
       tint: "bg-warning/15",
       value: data?.substitutions_today ?? 0,
       label: "Substitutes assigned today",
+      href: "/substitute",
     },
   ]
 
@@ -84,22 +89,33 @@ export function OperationsSummaryCards({ compact = false }: { compact?: boolean 
     >
       {tiles.map((tile) => (
         <motion.div key={tile.key} variants={riseItem}>
-          <Card
-            className={cn(
-              "p-5 transition-all duration-300 ease-spring hover:-translate-y-0.5 hover:shadow-glow-primary",
-              compact && "p-4",
-            )}
+          <Link
+            href={tile.href}
+            className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <div className="flex items-center justify-between">
-              <span className={cn("grid h-9 w-9 place-items-center rounded-xl", tile.tint, tile.tone)}>
-                <tile.icon className="h-[18px] w-[18px]" />
-              </span>
-            </div>
-            <p className="text-gradient-brand mt-4 truncate text-2xl font-semibold tracking-tight tabular-nums">
-              {tile.value}
-            </p>
-            <p className="mt-1 truncate text-sm text-muted-foreground">{tile.label}</p>
-          </Card>
+            <Card
+              className={cn(
+                "h-full p-5 cursor-pointer transition-all duration-300 ease-spring hover:-translate-y-1 hover:scale-[1.02] hover:shadow-glow-primary",
+                compact && "p-4",
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span
+                  className={cn(
+                    "grid h-9 w-9 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-110",
+                    tile.tint,
+                    tile.tone,
+                  )}
+                >
+                  <tile.icon className="h-[18px] w-[18px]" />
+                </span>
+              </div>
+              <p className="text-gradient-brand mt-4 truncate text-2xl font-semibold tracking-tight tabular-nums">
+                {tile.value}
+              </p>
+              <p className="mt-1 truncate text-sm text-muted-foreground">{tile.label}</p>
+            </Card>
+          </Link>
         </motion.div>
       ))}
     </motion.div>

@@ -9,11 +9,11 @@ logger = logging.getLogger(__name__)
 # Initialize client to generate embeddings matching the RAG collection dimension (1536)
 openai_client = AsyncOpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key=settings.OPENROUTER_API_KEY,
+    api_key=settings.OPENROUTER_API_KEY or "dummy_key",
 )
 
 class DocumentService:
-    async def index_document(self, doc: UniversalDocumentSchema, document_id: str):
+    async def index_document(self, doc: UniversalDocumentSchema, document_id: str, university_id: str = "demo-university"):
         try:
             collection = chroma_db.get_or_create_collection("student_documents")
             
@@ -25,6 +25,8 @@ class DocumentService:
                 ids=[document_id],
                 documents=[searchable_text],
                 metadatas=[{
+                    "document_id": document_id,
+                    "university_id": university_id,
                     "document_category": doc.document_category,
                     "summary": doc.summary,
                     "status": doc.status or "pending_manual_review"

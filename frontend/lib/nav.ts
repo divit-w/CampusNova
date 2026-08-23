@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react"
 import {
-  Bus,
   CalendarRange,
   ClipboardCheck,
   LayoutDashboard,
@@ -29,20 +28,15 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Timetable", href: "/timetable", icon: CalendarRange, roles: ["admin"] },
   { label: "Substitutes", href: "/substitute", icon: Repeat2, roles: ["admin"] },
   { label: "Attendance", href: "/attendance", icon: ClipboardCheck, roles: ["admin", "teacher"] },
-  { label: "Transport", href: "/transport", icon: Bus, roles: ["admin"] },
   { label: "User Management", href: "/admin/users", icon: Users, roles: ["admin"] },
   { label: "Doc Library", href: "/admin/documents", icon: Library, roles: ["admin"] },
-  { label: "My Portal", href: "/portals/teacher", icon: UserRound, roles: ["teacher"] },
-  { label: "My Portal", href: "/portals/student", icon: UserRound, roles: ["student"] },
 ]
 
 export function navForRole(role: Role): NavItem[] {
   return NAV_ITEMS.filter((item) => item.roles.includes(role))
 }
 
-/** Landing route per role — non-admins are routed to their read-only portal (audit P1-6). */
+/** Landing route per role */
 export function landingForRole(role: Role): string {
-  if (role === "admin") return "/"
-  if (role === "teacher") return "/portals/teacher"
-  return "/portals/student"
+  return "/"
 }

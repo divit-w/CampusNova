@@ -155,9 +155,11 @@ async def test_admin_list_students_limit_exceeds_max(mock_find_user, async_clien
 
 @pytest.mark.asyncio
 @patch("app.api.v1.deps.mongo_db.users_collection.find_one", new_callable=AsyncMock)
+@patch("app.api.v1.endpoints.portals.mongo_db.teachers_collection.find_one", new_callable=AsyncMock)
 @patch("app.api.v1.endpoints.portals.mongo_db.classes_collection.find", new_callable=MagicMock)
-async def test_teacher_my_classes(mock_find, mock_find_user, async_client):
-    mock_find_user.return_value = {"id": "teacher1", "role": "teacher"}
+async def test_teacher_my_classes(mock_find, mock_find_teacher, mock_find_user, async_client):
+    mock_find_user.return_value = {"id": "teacher1", "role": "teacher", "email": "teacher1@campus.edu"}
+    mock_find_teacher.return_value = {"teacher_id": "teacher1", "email": "teacher1@campus.edu"}
     mock_cursor = MagicMock()
     mock_cursor.to_list = AsyncMock(return_value=[
         {

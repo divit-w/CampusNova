@@ -87,8 +87,8 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
         break
       case 403:
         icon = Ban
-        title = "Not enough permissions"
-        description = "Your role doesn't have access to this action."
+        title = "Access Denied"
+        description = error.detail || "Your role doesn't have access to this action."
         break
       case 413:
         icon = AlertTriangle
@@ -110,6 +110,10 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
       default:
         description = error.detail || description
     }
+  } else if (error instanceof Error) {
+    description = error.message || description
+  } else if (typeof error === "string") {
+    description = error
   }
 
   const Icon = icon

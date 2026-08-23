@@ -18,9 +18,10 @@ logger = logging.getLogger(__name__)
 async def routes_summary(
     current_user: dict = Depends(require_roles(["admin"])),
 ):
-    """Returns KPI totals from the most recently generated & persisted route plan."""
+    """Returns KPI totals from the most recently generated & persisted route plan for this tenant."""
+    univ_id = current_user.get("university_id", "demo-university")
     latest = await mongo_db.transport_routes_collection.find_one(
-        {}, {"_id": 0}, sort=[("generated_at", -1)]
+        {"university_id": univ_id}, {"_id": 0}, sort=[("generated_at", -1)]
     )
     if not latest:
         return TransportRoutesSummaryResponse(has_plan=False)
@@ -29,6 +30,7 @@ async def routes_summary(
         has_plan=True,
         active_routes=latest.get("total_vehicles_used", 0),
         total_students_routed=latest.get("total_students_routed", 0),
+        total_unassigned=latest.get("total_unassigned", 0),
         generated_at=latest.get("generated_at"),
     )
 
@@ -43,27 +45,32 @@ async def optimize_routes(
     greedy Nearest-Neighbor TSP heuristic.
 
     Steps:
-      1. Load student pickup points (from request overrides or MongoDB).
+      1. Load student pickup points (from request overrides or MongoDB for this tenant).
       2. Cluster students by proximity using KMeans (n_clusters = n_vehicles).
       3. Enforce per-vehicle capacity — spill overflow to nearest under-cap vehicle.
       4. Order each cluster's stops via Nearest-Neighbor greedy TSP from vehicle depot.
       5. Persist the plan to `transport_routes` collection and return the structured response.
     """
+    univ_id = current_user.get("university_id", "demo-university")
     try:
-        optimizer = TransportOptimizer(payload)
+        optimizer = TransportOptimizer(payload, university_id=univ_id)
         result = await optimizer.optimize()
     except Exception as e:
         logger.error(f"Transport optimization failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Route optimization encountered an internal error")
 
-    # Persist the generated plan for audit / historical replay
+    # Persist the generated plan for audit / historical replay scoped to tenant
     plan_doc = {
+        "university_id": univ_id,
         "generated_at": datetime.now(timezone.utc),
         "requested_by": current_user.get("id"),
         "total_vehicles_used": result.total_vehicles_used,
         "total_students_routed": result.total_students_routed,
+        "total_unassigned": result.total_unassigned,
+        "unassigned_students": result.unassigned_students,
         "routes": [r.model_dump() for r in result.routes],
     }
     await mongo_db.transport_routes_collection.insert_one(plan_doc)
 
     return result
+

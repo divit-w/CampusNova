@@ -90,3 +90,90 @@ async def test_erp_prompt_empty_results(mock_run, mock_find_user, async_client):
     data = resp.json()
     assert data["target_collection"] == "teachers"
     assert data["results"] == []
+
+
+@pytest.mark.asyncio
+async def test_erp_query_scope_summary_55_records():
+    """Test that querying a cohort with 55 students reports 55 total and 10 preview."""
+    from app.services.nlp_service import erp_agent
+    from app.services.mongo_service import mongo_db
+    
+    # Mock students collection count and find
+    with patch.object(mongo_db.students_collection, "count_documents", new_callable=AsyncMock) as mock_count, \
+         patch.object(mongo_db.students_collection, "find") as mock_find:
+        mock_count.return_value = 55
+        mock_cursor = MagicMock()
+        mock_cursor.limit.return_value.to_list = AsyncMock(return_value=[
+            {"student_id": f"STU-{i:03d}", "full_name": f"Student {i}", "class_id": "CSE-A"}
+            for i in range(1, 11)
+        ])
+        mock_find.return_value = mock_cursor
+
+        result = await erp_agent.run("Show students in CSE-A")
+        assert result["total_matches"] == 55
+        assert result["preview_count"] == 10
+        assert "55" in result["summary"]
+        assert "10" in result["summary"]
+        assert "55 records match this query" in result["summary"]
+
+
+@pytest.mark.asyncio
+async def test_erp_teacher_schedule_query():
+    """Test that asking for Dr. Sharma's classes resolves F01 and returns schedule slots with timetable CTA."""
+    from app.services.nlp_service import erp_agent
+
+    result = await erp_agent.run("Show Dr. Sharma's classes today")
+    assert result["intent"] == "query"
+    assert result["target_collection"] == "timetable"
+    assert "F01" in result["route"]
+    assert "/timetable?faculty=F01" in result["route"]
+    assert result["action_card"] is not None
+    assert result["action_card"]["faculty_id"] == "F01"
+    assert "Dr. Sharma" in result["summary"]
+
+
+@pytest.mark.asyncio
+async def test_erp_find_substitute_action_intent():
+    """Test that asking for substitute coverage routes to /substitute with F01 without mutating DB."""
+    from app.services.nlp_service import erp_agent
+
+    result = await erp_agent.run("Find a substitute for Dr. Sharma")
+    assert result["intent"] == "action"
+    assert result["route"] == "/substitute?faculty=F01"
+    assert result["suggested_action"] == "Resolve Coverage for Dr. Sharma"
+    assert result["action_card"]["route"] == "/substitute?faculty=F01"
+
+
+@pytest.mark.asyncio
+async def test_erp_who_is_absent_query():
+    """Test that asking who is absent queries attendance and deep links to /attendance?filter=absent."""
+    from app.services.nlp_service import erp_agent
+    from app.services.mongo_service import mongo_db
+
+    with patch.object(mongo_db.student_attendance_collection, "count_documents", new_callable=AsyncMock) as mock_count, \
+         patch.object(mongo_db.student_attendance_collection, "find") as mock_find:
+        mock_count.return_value = 13
+        mock_cursor = MagicMock()
+        mock_cursor.to_list = AsyncMock(return_value=[
+            {"student_id": f"STU-{i:03d}", "status": "absent"} for i in range(1, 11)
+        ])
+        mock_find.return_value.limit.return_value = mock_cursor
+
+        result = await erp_agent.run("Who is absent today?")
+        assert result["intent"] == "query"
+        assert result["target_collection"] == "student_attendance"
+        assert result["total_matches"] == 13
+        assert result["route"] == "/attendance?filter=absent"
+
+
+@pytest.mark.asyncio
+async def test_erp_conversational_greetings():
+    """Test that casual greeting returns conversational response with zero DB queries."""
+    from app.services.nlp_service import erp_agent
+    from app.services.mongo_service import mongo_db
+
+    with patch.object(mongo_db.students_collection, "find") as mock_find:
+        result = await erp_agent.run("hello")
+        assert result["intent"] == "conversational"
+        assert result["results"] == []
+        assert not mock_find.called

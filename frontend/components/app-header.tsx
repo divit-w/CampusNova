@@ -40,8 +40,9 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
     return () => document.removeEventListener("mousedown", onClick)
   }, [])
 
-  const displayName = "Admin"
-  const initials = "A"
+  const displayName = user?.full_name || "Admin"
+  const initials = (displayName.charAt(0) || "A").toUpperCase()
+  const institutionName = user?.university_name || (user?.is_demo ? "CampusNova Demo University" : "Institution Workspace")
 
   return (
     <header className="glass-surface sticky top-0 z-30 flex h-16 items-center gap-3 px-4 md:px-6">
@@ -57,16 +58,23 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
 
       <div className="min-w-0 flex-1">
         <AnimatePresence mode="wait">
-          <motion.h1
+          <motion.div
             key={pathname}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={easeOutSoft}
-            className="truncate text-lg font-semibold tracking-tight"
+            className="flex items-center gap-2"
           >
-            {(pathname === '/' || pathname === '/dashboard') ? `Good to see you, ${displayName}.` : titleForPath(pathname)}
-          </motion.h1>
+            <h1 className="truncate text-lg font-semibold tracking-tight">
+              {(pathname === '/' || pathname === '/dashboard') ? `Good to see you, ${displayName}.` : titleForPath(pathname)}
+            </h1>
+            {institutionName && (
+              <Badge variant="outline" className="hidden sm:inline-flex text-[11px] font-normal text-muted-foreground border-slate-200">
+                {institutionName}
+              </Badge>
+            )}
+          </motion.div>
         </AnimatePresence>
       </div>
 
@@ -93,7 +101,7 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.98 }}
               transition={{ duration: 0.16 }}
-              className="glass-surface absolute right-0 mt-2 w-60 overflow-hidden rounded-xl p-2 shadow-soft-lg"
+              className="glass-surface absolute right-0 mt-2 w-64 overflow-hidden rounded-xl p-2 shadow-soft-lg"
             >
               <div className="flex items-center gap-3 rounded-xl p-2.5">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-live text-xs font-semibold text-primary-foreground">
@@ -104,13 +112,32 @@ export function AppHeader({ onOpenMobile }: { onOpenMobile: () => void }) {
                   <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </div>
-              <div className="px-2.5 pb-2">
+              <div className="px-2.5 pb-2 flex flex-col gap-1">
                 {user && (
-                  <Badge variant="default" className="capitalize">
+                  <Badge variant="default" className="capitalize w-fit">
                     {ROLE_LABELS[user.role]}
                   </Badge>
                 )}
+                {institutionName && (
+                  <span className="text-[11px] text-muted-foreground truncate">
+                    {institutionName}
+                  </span>
+                )}
               </div>
+              {user?.role === "admin" && (
+                <>
+                  <div className="my-1 h-px bg-border" />
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false)
+                      router.push("/admin/setup")
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 transition-colors hover:bg-accent"
+                  >
+                    Institution Setup
+                  </button>
+                </>
+              )}
               <div className="my-1 h-px bg-border" />
               <button
                 onClick={() => {

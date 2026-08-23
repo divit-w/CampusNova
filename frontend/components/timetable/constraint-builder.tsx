@@ -53,42 +53,57 @@ export function ConstraintBuilder({
 
   const addBlockedPeriod = (teacherIndex: number) => {
     const t = payload.teachers[teacherIndex]
-    const current = t.blocked_periods || []
-    updateTeacher(teacherIndex, "blocked_periods", [...current, { day: 0, period: 0 }])
+    const current = t.blocked_slots || t.blocked_periods || []
+    const updated = [...current, { day: 0, period: 0 }]
+    const next = [...payload.teachers]
+    next[teacherIndex] = { ...next[teacherIndex], blocked_slots: updated, blocked_periods: updated }
+    onChange({ ...payload, teachers: next })
   }
 
   const updateBlockedPeriod = (teacherIndex: number, periodIndex: number, field: "day" | "period", value: number) => {
     const t = payload.teachers[teacherIndex]
-    const current = [...(t.blocked_periods || [])]
+    const current = [...(t.blocked_slots || t.blocked_periods || [])]
     current[periodIndex] = { ...current[periodIndex], [field]: value }
-    updateTeacher(teacherIndex, "blocked_periods", current)
+    const next = [...payload.teachers]
+    next[teacherIndex] = { ...next[teacherIndex], blocked_slots: current, blocked_periods: current }
+    onChange({ ...payload, teachers: next })
   }
 
   const removeBlockedPeriod = (teacherIndex: number, periodIndex: number) => {
     const t = payload.teachers[teacherIndex]
-    const current = (t.blocked_periods || []).filter((_, i) => i !== periodIndex)
-    updateTeacher(teacherIndex, "blocked_periods", current)
+    const current = (t.blocked_slots || t.blocked_periods || []).filter((_, i) => i !== periodIndex)
+    const next = [...payload.teachers]
+    next[teacherIndex] = { ...next[teacherIndex], blocked_slots: current, blocked_periods: current }
+    onChange({ ...payload, teachers: next })
   }
 
   // --- COHORTS ---
-  const addCohortBlock = () => {
-    onChange({
-      ...payload,
-      fixed_slots: [
-        ...payload.fixed_slots,
-        {
-          subject_id: "BLOCKED", // Dummy ID used by backend or explicitly ignored by renderer
-          cohort_id: payload.cohorts[0]?.id || "C1",
-          day: 0,
-          period: 0,
-        },
-      ],
-    })
+  const addCohortBlock = (cohortIndex: number) => {
+    const nextCohorts = [...payload.cohorts]
+    const cohort = nextCohorts[cohortIndex]
+    const current = cohort.blocked_slots || []
+    nextCohorts[cohortIndex] = {
+      ...cohort,
+      blocked_slots: [...current, { day: 0, period: 0 }],
+    }
+    onChange({ ...payload, cohorts: nextCohorts })
   }
 
-  const removeCohortBlock = (index: number) => {
-    const next = payload.fixed_slots.filter((_, i) => i !== index)
-    onChange({ ...payload, fixed_slots: next })
+  const updateCohortBlock = (cohortIndex: number, slotIndex: number, field: "day" | "period", value: number) => {
+    const nextCohorts = [...payload.cohorts]
+    const cohort = nextCohorts[cohortIndex]
+    const current = [...(cohort.blocked_slots || [])]
+    current[slotIndex] = { ...current[slotIndex], [field]: value }
+    nextCohorts[cohortIndex] = { ...cohort, blocked_slots: current }
+    onChange({ ...payload, cohorts: nextCohorts })
+  }
+
+  const removeCohortBlock = (cohortIndex: number, slotIndex: number) => {
+    const nextCohorts = [...payload.cohorts]
+    const cohort = nextCohorts[cohortIndex]
+    const current = (cohort.blocked_slots || []).filter((_, i) => i !== slotIndex)
+    nextCohorts[cohortIndex] = { ...cohort, blocked_slots: current }
+    onChange({ ...payload, cohorts: nextCohorts })
   }
 
   // --- CURRICULUM ---
@@ -97,13 +112,29 @@ export function ConstraintBuilder({
     const subject = nextSubjects[subjectIndex]
     const currentQualified = subject.qualified_teachers || []
 
+    let updatedQualified: string[]
     if (currentQualified.includes(teacherId)) {
-      subject.qualified_teachers = currentQualified.filter((id) => id !== teacherId)
+      updatedQualified = currentQualified.filter((id) => id !== teacherId)
     } else {
-      subject.qualified_teachers = [...currentQualified, teacherId]
+      updatedQualified = [...currentQualified, teacherId]
+    }
+    subject.qualified_teachers = updatedQualified
+
+    // Also sync with course_offerings if present
+    let nextOfferings = payload.course_offerings
+    if (nextOfferings && nextOfferings.length > 0) {
+      nextOfferings = nextOfferings.map((o) =>
+        o.subject_id === subject.id
+          ? { ...o, qualified_teacher_ids: updatedQualified }
+          : o
+      )
     }
 
-    onChange({ ...payload, subjects: nextSubjects })
+    onChange({
+      ...payload,
+      subjects: nextSubjects,
+      course_offerings: nextOfferings,
+    })
   }
 
   const renderFaculty = () => (
@@ -225,78 +256,74 @@ export function ConstraintBuilder({
     <div className="space-y-4 flex-1 overflow-y-auto pr-2 pb-10">
       <div className="flex items-center justify-between">
         <Label className="text-sm font-semibold">Cohort Boundaries</Label>
-        <Button variant="outline" size="sm" onClick={addCohortBlock} className="h-7 text-xs">
-          <Plus className="h-3 w-3 mr-1" /> Add Block
-        </Button>
       </div>
       <p className="text-xs text-muted-foreground leading-relaxed">
-        Block out specific periods for an entire class (e.g. Assemblies, Sports).
+        Block out specific periods for an entire cohort (e.g. Assemblies, Sports, Seminars).
       </p>
 
-      {payload.fixed_slots.filter(s => s.subject_id === "BLOCKED").map((slot, i) => {
-        // We find its real index in the payload.fixed_slots array
-        const realIndex = payload.fixed_slots.findIndex(fs => fs === slot)
-        return (
-          <Card key={i} className="p-3 grid grid-cols-[1fr_1fr_1fr_32px] gap-2 items-center bg-muted/20 shadow-none">
-            <Select
-              value={slot.cohort_id}
-              onValueChange={(val) => {
-                const next = [...payload.fixed_slots]
-                next[realIndex] = { ...next[realIndex], cohort_id: val }
-                onChange({ ...payload, fixed_slots: next })
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {payload.cohorts.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      {payload.cohorts.map((cohort, cIdx) => (
+        <Card key={cohort.id} className="p-3 bg-muted/10 border border-border flex flex-col gap-2 shadow-none">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-xs">{cohort.name}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground">{cohort.student_count} students</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => addCohortBlock(cIdx)}
+                className="h-6 text-[10px] px-2"
+              >
+                <Plus className="h-2.5 w-2.5 mr-1" /> Add Block
+              </Button>
+            </div>
+          </div>
 
-            <Select
-              value={slot.day.toString()}
-              onValueChange={(val) => {
-                const next = [...payload.fixed_slots]
-                next[realIndex] = { ...next[realIndex], day: parseInt(val) }
-                onChange({ ...payload, fixed_slots: next })
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: payload.days_per_week }).map((_, d) => (
-                  <SelectItem key={d} value={d.toString()}>{DAY_NAMES[d] || `Day ${d+1}`}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {(cohort.blocked_slots || []).length > 0 && (
+            <div className="space-y-1.5 mt-1">
+              {(cohort.blocked_slots || []).map((slot, sIdx) => (
+                <div key={sIdx} className="flex items-center gap-1.5">
+                  <CalendarOff className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <Select
+                    value={slot.day.toString()}
+                    onValueChange={(val) => updateCohortBlock(cIdx, sIdx, "day", parseInt(val))}
+                  >
+                    <SelectTrigger className="h-6 text-[10px] px-2"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: payload.days_per_week }).map((_, d) => (
+                        <SelectItem key={d} value={d.toString()}>{DAY_NAMES[d]?.slice(0, 3) || `D${d + 1}`}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-            <Select
-              value={slot.period.toString()}
-              onValueChange={(val) => {
-                const next = [...payload.fixed_slots]
-                next[realIndex] = { ...next[realIndex], period: parseInt(val) }
-                onChange({ ...payload, fixed_slots: next })
-              }}
-            >
-              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Array.from({ length: payload.periods_per_day }).map((_, p) => (
-                  <SelectItem key={p} value={p.toString()}>Period {p+1}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  <Select
+                    value={slot.period.toString()}
+                    onValueChange={(val) => updateCohortBlock(cIdx, sIdx, "period", parseInt(val))}
+                  >
+                    <SelectTrigger className="h-6 text-[10px] px-2"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: payload.periods_per_day }).map((_, p) => (
+                        <SelectItem key={p} value={p.toString()}>P{p + 1}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-destructive"
-              onClick={() => removeCohortBlock(realIndex)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </Card>
-        )
-      })}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeCohortBlock(cIdx, sIdx)}
+                    className="h-5 w-5 shrink-0"
+                  >
+                    <Trash2 className="h-2.5 w-2.5 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      ))}
+      {payload.cohorts.length === 0 && (
+        <div className="text-xs text-muted-foreground text-center py-4">No cohorts added.</div>
+      )}
     </div>
   )
 

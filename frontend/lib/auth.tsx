@@ -8,6 +8,7 @@ interface AuthState {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<User>
+  loginWithGoogle: (credential: string) => Promise<User>
   logout: () => void
   refresh: () => Promise<void>
 }
@@ -50,14 +51,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return me
   }, [])
 
+  const loginWithGoogle = useCallback(async (credential: string) => {
+    const token = await api.loginWithGoogle(credential)
+    setToken(token.access_token)
+    const me = await api.me()
+    setUser(me)
+    return me
+  }, [])
+
   const logout = useCallback(() => {
     clearToken()
     setUser(null)
   }, [])
 
   const value = useMemo<AuthState>(
-    () => ({ user, loading, login, logout, refresh: hydrate }),
-    [user, loading, login, logout, hydrate],
+    () => ({ user, loading, login, loginWithGoogle, logout, refresh: hydrate }),
+    [user, loading, login, loginWithGoogle, logout, hydrate],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -68,3 +77,4 @@ export function useAuth(): AuthState {
   if (!ctx) throw new Error("useAuth must be used within an AuthProvider")
   return ctx
 }
+
