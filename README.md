@@ -13,13 +13,18 @@
 [![Vercel](https://img.shields.io/badge/Frontend-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/)
 [![Render](https://img.shields.io/badge/Backend-Render-purple?style=for-the-badge)](https://render.com/)
 
+---
+
+### 🌐 Try It Live
+
+**[Frontend Dashboard (Next.js & Vercel)](https://campus-nova-sand.vercel.app/login)** | **[Backend API Service (FastAPI & Render)](https://campusnova-api.onrender.com)** | **[Interactive API Documentation (Swagger UI)](https://campusnova-api.onrender.com/docs)**
+
 </div>
 
 ---
 
 ## Table of Contents
 * [Quick Highlights](#quick-highlights)
-* [Live Production Deployment](#live-production-deployment)
 * [Platform Dashboard](#platform-dashboard)
 * [Project Philosophy & Innovation Challenge](#project-philosophy--innovation-challenge)
 * [Core Engines & Mathematical Models](#core-engines--mathematical-models)
@@ -43,14 +48,6 @@
 *   **Asynchronous AI Document Processing:** Automated extraction and validation of physical forms, leave requests, and administrative records using Optical Character Recognition (OCR) and Natural Language Processing.
 *   **Real-Time State Synchronization:** Robust reactive state management ensures UI components remain perfectly synchronized across the dashboard when live substitutions or timetable shifts occur via Server-Sent Events (SSE).
 *   **Geofence & Spoof Mitigation:** Secure IP logging and geographical spoofing flags on faculty clock-ins guarantee audit trail integrity.
-
----
-
-## Live Production Deployment
-
-*   **Frontend Application (Next.js & Vercel):** [CampusNova Frontend](https://campus-nova-sand.vercel.app/login)
-*   **Backend API Service (FastAPI & Render):** [CampusNova Backend API](https://campusnova-api.onrender.com)
-*   **Interactive API Documentation:** [Swagger UI Docs](https://campusnova-api.onrender.com/docs)
 
 ---
 
@@ -292,3 +289,9 @@ The current architecture represents a production-ready foundation. Future extens
 *   **Message Queues:** Implementing Celery or RabbitMQ to completely offload heavy OCR document processing tasks from the primary ASGI thread.
 *   **Kubernetes Orchestration:** Preparing horizontal pod autoscaling configurations for large-scale institutional deployment.
 *   **Advanced Analytics:** Integrating predictive models for seasonal attendance drops.
+
+---
+
+<div align="center">
+  <p>Made with ❤️ by <b>Team Haigure</b></p>
+</div>
