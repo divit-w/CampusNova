@@ -1,38 +1,115 @@
+import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from app.core.config import settings
 
 class MongoManager:
     def __init__(self):
-        self.client = AsyncIOMotorClient(
-            settings.MONGO_URI,
-            maxPoolSize=settings.MONGO_MAX_POOL_SIZE,
-            minPoolSize=settings.MONGO_MIN_POOL_SIZE,
-            serverSelectionTimeoutMS=3000,  # Fail fast (3s) if MongoDB is unreachable
-        )
-        self.db = self.client[settings.MONGO_DB_NAME]
-        self.knowledge_collection = self.db.get_collection("knowledge_documents")
-        self.users_collection = self.db.get_collection("users")
-        self.teachers_collection = self.db.get_collection("teachers")
-        self.substitutions_collection = self.db.get_collection("substitutions")
-        self.faculty_attendance_collection = self.db.get_collection("faculty_attendance")
-        self.student_attendance_collection = self.db.get_collection("student_attendance")
-        self.students_collection = self.db.get_collection("students")
-        self.rooms_collection = self.db.get_collection("rooms")
-        self.subjects_collection = self.db.get_collection("subjects")
-        self.classes_collection = self.db.get_collection("classes")
-        self.transport_routes_collection = self.db.get_collection("transport_routes")
-        # Timetable background job state — persists job status and result across the
-        # 10s solver window. Allows the endpoint to return 202 immediately.
-        self.timetable_jobs_collection = self.db.get_collection("timetable_jobs")
-        # Canonical active timetable published for university operations
-        self.active_timetable_collection = self.db.get_collection("active_timetable")
-        # Immutable document intelligence audit records
-        self.document_audit_collection = self.db.get_collection("document_audits")
-        # Multi-tenant institutions registry
-        self.institutions_collection = self.db.get_collection("institutions")
-        # Persistent operational alerts
-        self.alerts_collection = self.db.get_collection("alerts")
-        # Immutable attendance modification audit log
-        self.attendance_audit_collection = self.db.get_collection("attendance_audits")
+        self._client = None
+        self._collections = {}
+
+    @property
+    def client(self) -> AsyncIOMotorClient:
+        try:
+            loop = asyncio.get_running_loop()
+            if self._client is None or self._client.get_io_loop().is_closed() or self._client.get_io_loop() != loop:
+                self._client = AsyncIOMotorClient(
+                    settings.MONGO_URI,
+                    maxPoolSize=settings.MONGO_MAX_POOL_SIZE,
+                    minPoolSize=settings.MONGO_MIN_POOL_SIZE,
+                    serverSelectionTimeoutMS=3000,
+                )
+                self._collections.clear()
+        except Exception:
+            if self._client is None:
+                self._client = AsyncIOMotorClient(
+                    settings.MONGO_URI,
+                    maxPoolSize=settings.MONGO_MAX_POOL_SIZE,
+                    minPoolSize=settings.MONGO_MIN_POOL_SIZE,
+                    serverSelectionTimeoutMS=3000,
+                )
+                self._collections.clear()
+        return self._client
+
+    @client.setter
+    def client(self, value):
+        self._client = value
+        self._collections.clear()
+
+    @property
+    def db(self):
+        return self.client[settings.MONGO_DB_NAME]
+
+    def _get_coll(self, name: str):
+        if name not in self._collections:
+            self._collections[name] = self.db.get_collection(name)
+        return self._collections[name]
+
+    @property
+    def knowledge_collection(self):
+        return self._get_coll("knowledge_documents")
+
+    @property
+    def users_collection(self):
+        return self._get_coll("users")
+
+    @property
+    def teachers_collection(self):
+        return self._get_coll("teachers")
+
+    @property
+    def substitutions_collection(self):
+        return self._get_coll("substitutions")
+
+    @property
+    def faculty_attendance_collection(self):
+        return self._get_coll("faculty_attendance")
+
+    @property
+    def student_attendance_collection(self):
+        return self._get_coll("student_attendance")
+
+    @property
+    def students_collection(self):
+        return self._get_coll("students")
+
+    @property
+    def rooms_collection(self):
+        return self._get_coll("rooms")
+
+    @property
+    def subjects_collection(self):
+        return self._get_coll("subjects")
+
+    @property
+    def classes_collection(self):
+        return self._get_coll("classes")
+
+    @property
+    def transport_routes_collection(self):
+        return self._get_coll("transport_routes")
+
+    @property
+    def timetable_jobs_collection(self):
+        return self._get_coll("timetable_jobs")
+
+    @property
+    def active_timetable_collection(self):
+        return self._get_coll("active_timetable")
+
+    @property
+    def document_audit_collection(self):
+        return self._get_coll("document_audits")
+
+    @property
+    def institutions_collection(self):
+        return self._get_coll("institutions")
+
+    @property
+    def alerts_collection(self):
+        return self._get_coll("alerts")
+
+    @property
+    def attendance_audit_collection(self):
+        return self._get_coll("attendance_audits")
 
 mongo_db = MongoManager()

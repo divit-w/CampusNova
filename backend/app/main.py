@@ -159,39 +159,48 @@ async def lifespan(app: FastAPI):
 
         logger.info("MongoDB indexes created successfully.")
 
+        # Always auto-seed core demo admin credentials so demo login works out-of-the-box
+        try:
+            from app.services.auth_service import create_user
+            admin_users = [
+                {
+                    "email": "admin@campusnova.edu",
+                    "password": "AdminPassword123!",
+                    "full_name": "CampusNova System Admin",
+                    "role": "admin",
+                    "university_id": settings.DEMO_UNIVERSITY_ID,
+                    "university_name": "CampusNova Demo University",
+                    "is_demo": True,
+                    "is_setup_complete": True,
+                },
+                {
+                    "email": "demo-judge@campusnova.com",
+                    "password": "judge123",
+                    "full_name": "Hackathon Judge",
+                    "role": "admin",
+                    "university_id": settings.DEMO_UNIVERSITY_ID,
+                    "university_name": "CampusNova Demo University",
+                    "is_demo": True,
+                    "is_setup_complete": True,
+                }
+            ]
+            for u in admin_users:
+                existing = await mongo_db.users_collection.find_one({"email": u["email"]})
+                if not existing:
+                    await create_user(u.copy())
+                    logger.info(f"Auto-seeded admin user: {u['email']}")
+
+            teachers_count = await mongo_db.teachers_collection.count_documents({"university_id": settings.DEMO_UNIVERSITY_ID})
+            if teachers_count < 1:
+                from app.services.seed_demo_service import seed_canonical_demo_data
+                await seed_canonical_demo_data()
+                logger.info("Auto-seeded canonical demo data successfully.")
+        except Exception as seed_err:
+            logger.warning("Admin accounts auto-seeding skipped/deferred: %s", seed_err)
+
         if settings.SEED_DEMO_DATA:
             try:
-                # 1. Auto-seed admin users (e.g. demo-judge@campusnova.com) if missing
-                from app.services.auth_service import create_user
-                admin_users = [
-                    {
-                        "email": "admin@campusnova.edu",
-                        "password": "AdminPassword123!",
-                        "full_name": "CampusNova System Admin",
-                        "role": "admin",
-                        "university_id": settings.DEMO_UNIVERSITY_ID,
-                        "university_name": "CampusNova Demo University",
-                        "is_demo": True,
-                        "is_setup_complete": True,
-                    },
-                    {
-                        "email": "demo-judge@campusnova.com",
-                        "password": "judge123",
-                        "full_name": "Hackathon Judge",
-                        "role": "admin",
-                        "university_id": settings.DEMO_UNIVERSITY_ID,
-                        "university_name": "CampusNova Demo University",
-                        "is_demo": True,
-                        "is_setup_complete": True,
-                    }
-                ]
-                for u in admin_users:
-                    existing = await mongo_db.users_collection.find_one({"email": u["email"]})
-                    if not existing:
-                        await create_user(u.copy())
-                        logger.info(f"Auto-seeded admin user: {u['email']}")
-
-                # 2. Auto-seed canonical demo knowledge if missing
+                # Auto-seed canonical demo knowledge if missing
                 from app.services.seed_demo_knowledge import seed_canonical_demo_knowledge
                 demo_doc_count = await mongo_db.knowledge_collection.count_documents({
                     "university_id": settings.DEMO_UNIVERSITY_ID,
@@ -199,18 +208,8 @@ async def lifespan(app: FastAPI):
                 })
                 if demo_doc_count < 3:
                     await seed_canonical_demo_knowledge(settings.DEMO_UNIVERSITY_ID)
-
-                # 3. Auto-seed full demo data (faculty, students, cohorts, timetables, attendance) if missing
-                teachers_count = await mongo_db.teachers_collection.count_documents({"university_id": settings.DEMO_UNIVERSITY_ID})
-                if teachers_count < 1:
-                    try:
-                        from app.services.seed_demo_service import seed_canonical_demo_data
-                        await seed_canonical_demo_data()
-                        logger.info("Auto-seeded canonical demo data successfully.")
-                    except Exception as demo_seed_err:
-                        logger.warning("Auto-seed demo data error: %s", demo_seed_err)
             except Exception as seed_err:
-                logger.warning("Demo data auto-seeding skipped/deferred: %s", seed_err)
+                logger.warning("Demo knowledge auto-seeding skipped/deferred: %s", seed_err)
     except Exception as e:
         logger.warning(f"Non-critical: MongoDB index creation skipped/delayed: {e}")
     yield
