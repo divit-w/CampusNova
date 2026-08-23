@@ -243,17 +243,12 @@ A centralized repository powered by ChromaDB for querying institutional policies
 
 ![Knowledge Base](screenshots/knowledge.png)
 
-### 7. Transport & Fleet Operations
-Live tracking and predictive metrics for institutional transport fleets, providing high-level oversight of campus logistics.
-
-![Transport Management](screenshots/transport.png)
-
-### 8. AI Command Interface
+### 7. AI Command Interface
 Natural language processing interface allowing administrators to query system data conversationally, grounded perfectly by our RAG vector embeddings.
 
 ![AI Command Center](screenshots/ai%20command.png)
 
-### 9. User Identity Management
+### 8.. User Identity Management
 Hierarchical, role-based access control interfaces allowing granular permission settings.
 
 ![User Management](screenshots/user%20management.png)
