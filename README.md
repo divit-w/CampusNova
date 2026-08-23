@@ -378,5 +378,5 @@ While the current architecture delivers a highly resilient, production-ready Min
 <br/>
 
 <div align="center">
-  <p>Made with ❤️ by <b>Team Haigure</b></p>
+  <p>Made with ❤️ by <b>Team Helios</b></p>
 </div>
