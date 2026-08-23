@@ -200,13 +200,19 @@ async def lifespan(app: FastAPI):
 
         if settings.SEED_DEMO_DATA:
             try:
-                # Auto-seed canonical demo knowledge if missing
+                # Auto-seed canonical demo knowledge if missing or if ChromaDB vector store is empty
                 from app.services.seed_demo_knowledge import seed_canonical_demo_knowledge
+                from app.services.chroma_service import chroma_db
                 demo_doc_count = await mongo_db.knowledge_collection.count_documents({
                     "university_id": settings.DEMO_UNIVERSITY_ID,
                     "document_type": "INSTITUTIONAL_POLICY",
                 })
-                if demo_doc_count < 3:
+                try:
+                    chroma_count = chroma_db.get_or_create_collection("student_documents").count()
+                except Exception:
+                    chroma_count = 0
+
+                if demo_doc_count < 3 or chroma_count == 0:
                     await seed_canonical_demo_knowledge(settings.DEMO_UNIVERSITY_ID)
             except Exception as seed_err:
                 logger.warning("Demo knowledge auto-seeding skipped/deferred: %s", seed_err)
