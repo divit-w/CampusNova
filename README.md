@@ -160,20 +160,13 @@ $$
 Instead of manual permutation, we utilize a CP-SAT solver to maximize institutional efficiency. Let $X_{t,c,r}$ be a boolean decision variable that equals $1$ if teacher $t$ is assigned to class $c$ in room $r$.
 
 **Objective Function (Maximize Subject Preference & Minimize Gaps):**
+
 $$
 \text{Maximize} \sum_{t \in T} \sum_{c \in C} \sum_{r \in R} (P_{t,c} \cdot X_{t,c,r}) - \text{IdlePenalty}_t
 $$
 
-*   **Hard Constraint (No Overlaps):** 
-$$
-\sum_{c} \sum_{r} X_{t,c,r} \le 1
-$$
-Ensures a faculty member is never double-booked for any given time block.
-*   **Hard Constraint (Capacity):** 
-$$
-\text{Enrolled}_c \le \text{Capacity}_r
-$$
-Guarantees the assigned room can physically accommodate the students.
+*   **Hard Constraint (No Overlaps):** $\sum_{c} \sum_{r} X_{t,c,r} \le 1$. Ensures a faculty member is never double-booked for any given time block.
+*   **Hard Constraint (Capacity):** $\text{Enrolled}_c \le \text{Capacity}_r$. Guarantees the assigned room can physically accommodate the students.
 
 ### 3. Substitute Ranking Algorithm
 When an instructor is marked absent, the resolver queries the active daily matrix and computes a normalized compatibility score $S_c$ for every available candidate $c$:
