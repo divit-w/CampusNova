@@ -42,8 +42,10 @@ CANONICAL_ROOMS = [
     {"room_id": "LAB1", "name": "Computing Lab 1", "capacity": 40, "type": "LAB", "building": "Tech Tower"},
 ]
 
+from pymongo import UpdateOne
+
 async def seed_canonical_demo_data():
-    """Seeds the full canonical demo university dataset into MongoDB."""
+    """Seeds the full canonical demo university dataset into MongoDB cleanly and quickly."""
     logger.info("Seeding canonical demo data...")
 
     # Seed Institution
@@ -60,47 +62,59 @@ async def seed_canonical_demo_data():
     )
 
     # Seed Teachers
+    teacher_ops = []
     for f in CANONICAL_FACULTY:
         doc = dict(f)
         doc["university_id"] = DEMO_UNIVERSITY_ID
-        await mongo_db.teachers_collection.update_one(
+        teacher_ops.append(UpdateOne(
             {"university_id": DEMO_UNIVERSITY_ID, "teacher_id": doc["teacher_id"]},
             {"$set": doc},
             upsert=True
-        )
+        ))
+    if teacher_ops:
+        await mongo_db.teachers_collection.bulk_write(teacher_ops)
 
     # Seed Classes
+    class_ops = []
     for c in CANONICAL_COHORTS:
         doc = dict(c)
         doc["university_id"] = DEMO_UNIVERSITY_ID
-        await mongo_db.classes_collection.update_one(
+        class_ops.append(UpdateOne(
             {"university_id": DEMO_UNIVERSITY_ID, "class_id": doc["class_id"]},
             {"$set": doc},
             upsert=True
-        )
+        ))
+    if class_ops:
+        await mongo_db.classes_collection.bulk_write(class_ops)
 
     # Seed Subjects
+    subject_ops = []
     for s in CANONICAL_SUBJECTS:
         doc = dict(s)
         doc["university_id"] = DEMO_UNIVERSITY_ID
-        await mongo_db.subjects_collection.update_one(
+        subject_ops.append(UpdateOne(
             {"university_id": DEMO_UNIVERSITY_ID, "subject_id": doc["subject_id"]},
             {"$set": doc},
             upsert=True
-        )
+        ))
+    if subject_ops:
+        await mongo_db.subjects_collection.bulk_write(subject_ops)
 
     # Seed Rooms
+    room_ops = []
     for r in CANONICAL_ROOMS:
         doc = dict(r)
         doc["university_id"] = DEMO_UNIVERSITY_ID
-        await mongo_db.rooms_collection.update_one(
+        room_ops.append(UpdateOne(
             {"university_id": DEMO_UNIVERSITY_ID, "room_id": doc["room_id"]},
             {"$set": doc},
             upsert=True
-        )
+        ))
+    if room_ops:
+        await mongo_db.rooms_collection.bulk_write(room_ops)
 
-    # Seed 152 Students
-    student_records = []
+    # Seed 152 Students via bulk_write
+    student_ops = []
     first_names = ["Aarav", "Priya", "Rohan", "Ananya", "Vihaan", "Isha", "Aditya", "Kavya", "Siddharth", "Diya"]
     last_names = ["Patel", "Singh", "Sharma", "Verma", "Gupta", "Iyer", "Nair", "Reddy", "Joshi", "Kumar"]
     cohort_assignments = [("CSE-A", 55), ("CSE-B", 52), ("ECE-A", 45)]
@@ -120,11 +134,14 @@ async def seed_canonical_demo_data():
                 "roll_number": f"{class_id}-{i+1:02d}",
                 "university_id": DEMO_UNIVERSITY_ID,
             }
-            await mongo_db.students_collection.update_one(
+            student_ops.append(UpdateOne(
                 {"university_id": DEMO_UNIVERSITY_ID, "student_id": sid},
                 {"$set": doc},
                 upsert=True
-            )
+            ))
             global_student_idx += 1
+
+    if student_ops:
+        await mongo_db.students_collection.bulk_write(student_ops)
 
     logger.info("Canonical demo dataset seeded successfully.")

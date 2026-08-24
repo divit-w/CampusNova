@@ -392,10 +392,19 @@ export default function LoginPage() {
               type="button"
               disabled={submitting}
               onClick={onJudgeAccess}
-              className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 hover:underline"
+              className="mt-1.5 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 hover:underline disabled:opacity-50"
             >
-              <span>Sign in as Demo Administrator</span>
-              <span className="text-[10px] text-muted-foreground font-normal">(demo-judge@campusnova.com)</span>
+              {submitting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Signing into Demo…</span>
+                </>
+              ) : (
+                <>
+                  <span>Sign in as Demo Administrator</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">(demo-judge@campusnova.com)</span>
+                </>
+              )}
             </button>
           </div>
 
