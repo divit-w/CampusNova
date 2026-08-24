@@ -9,6 +9,7 @@ from app.core.security import create_access_token
 from app.services.image_preprocessing import image_preprocessor
 from app.services.date_extractor import date_extractor
 from app.services.entity_matcher import entity_matcher
+from app.services.ocr_service import ocr_service
 from app.schemas.documents import UniversalDocumentSchema
 
 client = TestClient(app)
@@ -301,3 +302,37 @@ def test_approve_endpoint_executes_operational_actions_after_review():
         
         # Verify operational alert emitted
         mock_alert.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_process_document_fallback_detects_student_leave_from_filename_hints():
+    """Fallback should classify student leave even when OCR body text is sparse."""
+    result = await ocr_service.process_document_fallback(
+        image_bytes=b"noisy-bytes",
+        filename="medical_certificate_leave_application_form_scan.jpg",
+        preprocessing_meta={},
+    )
+    assert result.document_type == "STUDENT_LEAVE_FORM"
+    assert "Leave" in result.document_category
+
+
+@pytest.mark.asyncio
+async def test_process_document_fallback_keeps_unrelated_docs_unknown():
+    """Fallback should still return UNKNOWN for unrelated documents."""
+    result = await ocr_service.process_document_fallback(
+        image_bytes=b"unrelated-doc-bytes",
+        filename="library_notice_circular.jpg",
+        preprocessing_meta={},
+    )
+    assert result.document_type == "UNKNOWN"
+
+
+@pytest.mark.asyncio
+async def test_process_document_fallback_prioritizes_faculty_leave_over_generic_leave_hints():
+    """Faculty leave hints must outrank generic leave filename keywords."""
+    result = await ocr_service.process_document_fallback(
+        image_bytes=b"faculty-doc-bytes",
+        filename="faculty_leave_request_form.jpg",
+        preprocessing_meta={},
+    )
+    assert result.document_type == "FACULTY_LEAVE_FORM"

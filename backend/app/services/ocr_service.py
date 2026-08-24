@@ -90,6 +90,35 @@ class OCRService:
 
         raw_combined = f"{filename} {extracted_text}".lower()
         normalized_combined = raw_combined.replace("_", " ").replace("-", " ")
+        normalized_filename = filename.lower().replace("_", " ").replace("-", " ")
+        canonical_combined = re.sub(r"[^a-z0-9\s]", " ", normalized_combined)
+        canonical_combined = re.sub(r"\s+", " ", canonical_combined).strip()
+
+        def _contains_any(text: str, phrases: List[str]) -> bool:
+            return any(phrase in text for phrase in phrases)
+
+        def _is_faculty_leave_document(text: str) -> bool:
+            return _contains_any(text, ["faculty leave", "professor leave", "teacher leave", "duty leave"])
+
+        def _is_student_leave_document(text: str, normalized_name: str) -> bool:
+            student_leave_phrases = [
+                "leave application",
+                "leave application form",
+                "student leave",
+                "sick leave",
+                "medical leave",
+                "leave request",
+                "leave form",
+                "application for leave",
+                "requesting leave",
+                "leave of absence",
+                "absence due to",
+                "absent due to",
+                "medical certificate",
+                "sick note",
+                "fever",
+            ]
+            return _contains_any(text, student_leave_phrases) or bool(re.search(r"\bleave\b", normalized_name))
 
         fields: List[ExtractedField] = []
         doc_type = "UNKNOWN"
@@ -164,7 +193,7 @@ class OCRService:
             fields.append(ExtractedField(key="Faculty Name", value=faculty_name, raw_value=raw_faculty_name, confidence="Medium"))
 
         # 4. Classification Heuristics
-        if any(k in normalized_combined for k in ["faculty leave", "professor leave", "teacher leave", "duty leave"]):
+        if _is_faculty_leave_document(canonical_combined):
             doc_type = "FACULTY_LEAVE_FORM"
             doc_category = "Faculty Leave Application"
             confidence = 0.94
@@ -183,7 +212,7 @@ class OCRService:
                     faculty_name = "Dr. Ada Lovelace"
                     faculty_id = faculty_id or "T02"
 
-        elif any(k in normalized_combined for k in ["leave application", "student leave", "sick leave", "medical leave", "fever", "leave request", "leave form", "application for leave"]):
+        elif _is_student_leave_document(canonical_combined, normalized_filename):
             doc_type = "STUDENT_LEAVE_FORM"
             doc_category = "Student Leave Application"
             confidence = 0.93
