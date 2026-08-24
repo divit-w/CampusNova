@@ -113,10 +113,12 @@ class DocumentClassifier:
         
         is_general_admin = any(k in combined_text for k in ["circular", "university policy", "handbook", "regulations", "guidelines", "administrative order", "official notice", "logistics manual"])
         
+        has_leave_keywords = any(k in combined_text for k in ["leave", "absent", "sick", "medical", "fever", "duty", "excuse"])
+        
         is_student_leave = (
-            any(k in combined_text for k in ["leave application", "student leave", "application for leave", "absent from", "excuse absence", "fever", "sick leave"]) or
-            (doc.student_name and (doc.leave_start_date or doc.leave_end_date)) or
-            ("leave" in (doc.document_category or "").lower() and not is_faculty_leave)
+            any(k in combined_text for k in ["leave application", "student leave", "application for leave", "absent from", "excuse absence", "fever", "sick leave", "leave request", "leave form"]) or
+            (bool(doc.student_name or doc.student_id) and bool(doc.leave_start_date or doc.leave_end_date)) or
+            (bool(doc.document_category) and "leave" in doc.document_category.lower() and has_leave_keywords and not is_faculty_leave)
         )
 
         # ── 3. Classification Resolution & Tenant Fuzzy Entity Matching ────────
@@ -353,7 +355,10 @@ class DocumentClassifier:
                         break
 
             student_query_id = doc.student_id
-            if not student_query_id:
+            raw_id_match = re.search(r'\b(STU-[0-9]{3,4})\b', (doc.raw_ocr_text or ""), re.IGNORECASE)
+            if raw_id_match:
+                student_query_id = raw_id_match.group(1).upper()
+            elif not student_query_id:
                 for f in doc.extracted_fields:
                     if any(x in f.key.lower() for x in ["student_id", "roll", "id"]) and f.value:
                         student_query_id = f.value
@@ -368,6 +373,21 @@ class DocumentClassifier:
             doc.student_candidates = match_res.candidates
             doc.matched_student_class = match_res.extra_meta.get("cohort", "Class")
             doc.student_verified = match_res.is_exact or (match_res.confidence >= 0.85 and not match_res.requires_admin_selection)
+
+            # If document has zero verified student identity, no student ID, and no leave dates, reclassify as UNKNOWN
+            if not doc.student_id and not doc.leave_start_date and not doc.student_verified:
+                doc.document_type = "UNKNOWN"
+                doc.document_category = "Uncategorized Document"
+                doc.classification_confidence = 0.35
+                doc.classification_reason = "Document structure does not match standard institutional operational templates."
+                doc.target_department = "General Administration"
+                doc.recommended_action = "MANUAL_REVIEW"
+                doc.recommended_action_description = "Document type uncertain. Manual classification and field review required. No automated changes applied."
+                doc.status = "pending_manual_review"
+                doc.requires_human_review = True
+                doc.operational_effect = None
+                doc.needs_review_fields = needs_review_fields
+                return doc
 
             if match_res.requires_admin_selection or not doc.student_verified:
                 if "student_name" not in needs_review_fields:

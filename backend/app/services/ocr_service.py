@@ -183,7 +183,7 @@ class OCRService:
                     faculty_name = "Dr. Ada Lovelace"
                     faculty_id = faculty_id or "T02"
 
-        elif any(k in normalized_combined for k in ["leave application", "student leave", "sick leave", "medical leave", "fever", "leave"]):
+        elif any(k in normalized_combined for k in ["leave application", "student leave", "sick leave", "medical leave", "fever", "leave request", "leave form", "application for leave"]):
             doc_type = "STUDENT_LEAVE_FORM"
             doc_category = "Student Leave Application"
             confidence = 0.93

@@ -206,6 +206,7 @@ Database writes utilize MongoDB `upsert` operations bounded by composite keys (S
 A modular interface designed strictly for minimal clicks. Operations such as substitute teacher assignment, attendance tracking, and schedule conflict resolution are surfaced proactively. 
 
 ![Dashboard Overview](screenshots/dashboard.png)
+![Substitute Resolution & Allocation](screenshots/substitutes.png)
 
 ### 2. Timetable Generation & Management
 Automated conflict resolution allows administrators to generate semester timetables in seconds. Our heuristic backend crunches the math to output an optimal schedule.
@@ -225,7 +226,7 @@ Our Zero-Hardware architecture eliminates the need for expensive physical biomet
 ### 4. Centralized Attendance & Bulk OCR Engine
 The institutional command center for all student and faculty attendance logistics.
 
-<div align="center"><img src="screenshots/faculty_attendence.jpg" alt="Attendance Dashboard & Geofence" width="100%" /></div>
+![Attendance Dashboard](screenshots/attendance.png)
 
 **Core Features:**
 *   **Unified Dashboard:** Provides a high-level overview of daily present, absent, and excused metrics.
@@ -243,12 +244,15 @@ A centralized repository powered by ChromaDB for querying institutional policies
 
 ![Knowledge Base](screenshots/knowledge.png)
 
-### 7. AI Command Interface
+### 7. Transport & Fleet Operations
+Live tracking and predictive metrics for institutional transport fleets, providing high-level oversight of campus logistics.
+
+### 8. AI Command Interface
 Natural language processing interface allowing administrators to query system data conversationally, grounded perfectly by our RAG vector embeddings.
 
 ![AI Command Center](screenshots/ai%20command.png)
 
-### 8.. User Identity Management
+### 9. User Identity Management
 Hierarchical, role-based access control interfaces allowing granular permission settings.
 
 ![User Management](screenshots/user%20management.png)
@@ -263,16 +267,16 @@ The backend exposes a highly structured, RESTful API. Every endpoint is shielded
 |---|---|---|---|
 | **POST** | `/api/v1/auth/login` | Public | Authenticates credentials and issues cryptographically signed JWT access tokens. |
 | **POST** | `/api/v1/auth/register` | Admin | Provisions new user accounts with designated role assignments. |
-| **GET** | `/api/v1/admin/erp/summary` | Admin | Aggregates high-level metrics for the primary dashboard operations. |
+| **GET** | `/api/v1/admin/dashboard-summary` | Admin | Aggregates high-level metrics for the primary dashboard operations. |
 | **GET** | `/api/v1/portals/teacher/my-classes` | Faculty | Retrieves the daily schedule specific to the authenticated instructor. |
 | **GET** | `/api/v1/portals/student/my-schedule` | Student | Retrieves the conflict-free timetable tailored to the student's enrollments. |
-| **POST** | `/api/v1/attendance/clock-in` | Faculty | Validates incoming GPS coordinates via Haversine logic to record attendance. |
-| **POST** | `/api/v1/attendance/bulk-sync` | Admin | Synchronizes offline or bulk attendance ledgers with the primary database. |
+| **POST** | `/api/v1/attendance/faculty-clock-in` | Faculty | Validates incoming GPS coordinates via Haversine logic to record attendance. |
+| **POST** | `/api/v1/attendance/sync-bulk` | Admin | Synchronizes offline or bulk attendance ledgers with the primary database. |
 | **POST** | `/api/v1/resources/resolve-conflict` | Admin | Triggers the heuristic algorithm to compute optimal substitute faculty routing. |
-| **POST** | `/api/v1/documents/upload` | Authenticated | Ingests physical forms into the asynchronous OCR processing pipeline. |
-| **GET** | `/api/v1/documents/queue` | Admin | Fetches pending administrative documents requiring manual approval. |
+| **POST** | `/api/v1/documents/extract` | Authenticated | Ingests physical forms into the OCR processing pipeline. |
+| **GET** | `/api/v1/knowledge/documents` | Admin | Fetches administrative and policy documents requiring review or search. |
 | **POST** | `/api/v1/knowledge/query` | Authenticated | Executes a semantic vector search against ChromaDB for policy retrieval. |
-| **GET** | `/api/v1/transport/fleet-status` | Admin | Aggregates live geographical data for institutional transport fleets. |
+| **GET** | `/api/v1/transport/routes-summary` | Admin | Aggregates live geographical data for institutional transport fleets. |
 
 ---
 
