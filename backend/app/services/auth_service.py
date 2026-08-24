@@ -101,9 +101,13 @@ async def verify_google_credential(credential: str) -> Dict[str, Any]:
                 if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_ID.strip():
                     target_cid = settings.GOOGLE_CLIENT_ID.strip().strip('"').strip("'")
                     aud = str(payload.get("aud") or "").strip().strip('"').strip("'")
-                    if aud and aud != target_cid:
-                        logger.warning(f"Google Token audience mismatch: {aud} vs {target_cid}")
-                        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Google token audience mismatch")
+                    azp = str(payload.get("azp") or "").strip().strip('"').strip("'")
+                    if target_cid != aud and target_cid != azp:
+                        logger.warning(f"Google Token audience mismatch: aud='{aud}', azp='{azp}' vs target='{target_cid}'")
+                        raise HTTPException(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail=f"Google token audience mismatch. Token aud='{aud[:12]}...' vs backend GOOGLE_CLIENT_ID='{target_cid[:12]}...'"
+                        )
 
                 if not payload.get("email"):
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google token payload missing email")
