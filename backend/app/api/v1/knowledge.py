@@ -535,9 +535,15 @@ async def query_knowledge(
     except Exception:
         total_docs = 0
 
-    if total_docs == 0 and univ_id == settings.DEMO_UNIVERSITY_ID:
+    collection = chroma_db.get_or_create_collection("student_documents")
+    try:
+        chroma_count = collection.count()
+    except Exception:
+        chroma_count = 0
+
+    if (total_docs == 0 or chroma_count == 0) and univ_id == settings.DEMO_UNIVERSITY_ID:
         try:
-            logger.info("Knowledge Base has 0 documents for demo tenant %s — auto-seeding canonical policy documents...", univ_id)
+            logger.info("Knowledge Base has 0 ChromaDB vector chunks for demo tenant %s — auto-seeding canonical policy documents...", univ_id)
             from app.services.seed_demo_knowledge import seed_canonical_demo_knowledge
             await seed_canonical_demo_knowledge(univ_id)
             total_docs = await mongo_db.knowledge_collection.count_documents({"indexing_status": "completed", "university_id": univ_id})
@@ -550,8 +556,6 @@ async def query_knowledge(
             answer="The Knowledge Base is currently empty. Upload university policies, regulations, manuals, circulars, or administrative documents to make them searchable.",
             citations=[]
         )
-
-    collection = chroma_db.get_or_create_collection("student_documents")
 
     semantic_hits = []
     
