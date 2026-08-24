@@ -73,49 +73,43 @@ To ensure absolute system integrity, we pivoted. We decoupled the architecture, 
 Our system isolates state mutation, machine learning inference, and asynchronous job queues into discrete functional blocks. This guarantees that complex computational operations do not block the primary HTTP event loop.
 
 ```mermaid
-flowchart TB
-    classDef client fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px,color:#01579b;
-    classDef gateway fill:#e8f5e9,stroke:#4caf50,stroke-width:2px,color:#1b5e20;
-    classDef core fill:#fff3e0,stroke:#ff9800,stroke-width:2px,color:#e65100;
-    classDef data fill:#efebe9,stroke:#795548,stroke-width:2px,color:#3e2723;
-    classDef ml fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#4a148c;
+graph TD
+    classDef client fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px,color:#01579b
+    classDef gateway fill:#e8f5e9,stroke:#4caf50,stroke-width:2px,color:#1b5e20
+    classDef core fill:#fff3e0,stroke:#ff9800,stroke-width:2px,color:#e65100
+    classDef data fill:#efebe9,stroke:#795548,stroke-width:2px,color:#3e2723
+    classDef ml fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#4a148c
 
-    %% Client Layer
-    subgraph Frontend ["Client Presentation Layer (Next.js 14)"]
+    subgraph Frontend["Client Presentation Layer (Next.js 14)"]
         UI["React Dashboard UI"]:::client
         State["Zustand / Reactive State"]:::client
         SSE_Client["SSE Event Listener"]:::client
     end
 
-    %% Gateway & Security Layer
-    subgraph API ["FastAPI Gateway & Security"]
+    subgraph API["FastAPI Gateway & Security"]
         Router["API Routing & Pydantic Validation"]:::gateway
         Auth["JWT & RBAC Gatekeeper"]:::gateway
         Limiter["IP Rate Limiting"]:::gateway
     end
 
-    %% Core Business Logic
-    subgraph Services ["Core Orchestration Services"]
+    subgraph Services["Core Orchestration Services"]
         TT_Engine["Heuristic Timetable Solver"]:::core
         Sub_Engine["Substitute Matrix Resolver"]:::core
         Geo_Engine["Haversine Geofencing Logic"]:::core
         Alert_Manager["Async Alert Publisher"]:::core
     end
 
-    %% ML & Processing
-    subgraph Processing ["AI & Document Pipeline"]
+    subgraph Processing["AI & Document Pipeline"]
         OCR["Optical Character Recognition"]:::ml
         NLP["Information Extraction (LLM)"]:::ml
         Embeddings["Vector Embedding Generator"]:::ml
     end
 
-    %% Persistence Layer
-    subgraph Storage ["Distributed Persistence"]
+    subgraph Storage["Distributed Persistence"]
         MongoDB[("MongoDB Atlas (Transactional)")]:::data
         ChromaDB[("ChromaDB (Vector Knowledge)")]:::data
     end
 
-    %% Flow Dynamics
     UI -->|Mutations| State
     State -->|REST Payload| Limiter
     Limiter --> Auth
