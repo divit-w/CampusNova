@@ -98,10 +98,11 @@ async def verify_google_credential(credential: str) -> Dict[str, Any]:
                         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token expiration")
 
                 # Verify audience if GOOGLE_CLIENT_ID configured
-                if settings.GOOGLE_CLIENT_ID:
-                    aud = payload.get("aud")
-                    if aud and aud != settings.GOOGLE_CLIENT_ID:
-                        logger.warning(f"Google Token audience mismatch: {aud} vs {settings.GOOGLE_CLIENT_ID}")
+                if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_ID.strip():
+                    target_cid = settings.GOOGLE_CLIENT_ID.strip().strip('"').strip("'")
+                    aud = str(payload.get("aud") or "").strip().strip('"').strip("'")
+                    if aud and aud != target_cid:
+                        logger.warning(f"Google Token audience mismatch: {aud} vs {target_cid}")
                         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Google token audience mismatch")
 
                 if not payload.get("email"):
